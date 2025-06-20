@@ -15,20 +15,20 @@ export default function DreamCard({ dream, onEdit, onDelete }) {
       <Text style={styles.title}>{dream.title}</Text>
       {dream.mood && (
         <View style={styles.moodTag}>
-          <Tag size={12} />
-          <Text>{dream.mood}</Text>
+          <Tag size={14} color="#888" />
+          <Text style={styles.moodText}>{dream.mood}</Text>
         </View>
       )}
       <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
-        <EllipsisVertical size={20} />
+        <EllipsisVertical size={22} color="#888" />
       </TouchableOpacity>
       {showMenu && (
         <View style={styles.menu}>
           <TouchableOpacity onPress={() => { setShowMenu(false); onEdit(dream.id); }}>
-            <Pencil size={18} />
+            <Pencil size={20} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => { setShowMenu(false); onDelete(dream.id); }}>
-            <Trash size={18} />
+            <Trash size={20} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
@@ -38,25 +38,34 @@ export default function DreamCard({ dream, onEdit, onDelete }) {
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    margin: 8,
-    backgroundColor: '#eee',
-    borderRadius: 8,
+    padding: 20,
+    marginVertical: 10,
+    backgroundColor: '#222',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
   },
   moodTag: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
+  },
+  moodText: {
+    marginLeft: 6,
+    color: '#aaa',
   },
   menu: {
     position: 'absolute',
-    right: 10,
-    top: 10,
-    backgroundColor: '#ccc',
-    borderRadius: 4,
-    padding: 4,
+    right: 15,
+    top: 15,
+    backgroundColor: '#333',
+    borderRadius: 6,
+    padding: 6,
   },
 });

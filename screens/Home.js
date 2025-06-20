@@ -8,7 +8,6 @@ import TitleModal from '../components/Modal';
 export default function Home() {
   const [dreams, setDreams] = useState([]);
   const [query, setQuery] = useState('');
-
   const [showModal, setShowModal] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [newTitle, setNewTitle] = useState('');
@@ -53,7 +52,8 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <TextInput
-        placeholder="Search dreams"
+        placeholder="Search dreams..."
+        placeholderTextColor="#888"
         value={query}
         onChangeText={setQuery}
         style={styles.input}
@@ -80,6 +80,13 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  input: { borderWidth: 1, padding: 10, marginBottom: 10 },
+  container: { flex: 1, padding: 20, backgroundColor: '#000' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#444',
+    padding: 12,
+    color: '#fff',
+    borderRadius: 10,
+    marginBottom: 20,
+  },
 });
