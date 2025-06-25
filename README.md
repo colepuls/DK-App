@@ -25,7 +25,6 @@ A beautiful and intuitive dream journal app that helps you capture, analyze, and
 
 ### 🤖 **AI Dream Assistant**
 - **Dream Interpretation**: Get AI-powered insights about your dreams
-- **Voice Questions**: Ask questions about your dreams using natural speech
 - **Personalized Analysis**: Receive tailored interpretations based on your dream patterns
 - **Pattern Recognition**: AI identifies recurring themes and symbols
 
