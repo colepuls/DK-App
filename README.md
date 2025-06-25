@@ -42,7 +42,6 @@ Transform your dream journaling experience with advanced voice capabilities:
 - **🎤 One-Tap Voice Input**: Tap the microphone icon anywhere to start recording
 - **Dream Descriptions**: Speak your dreams naturally - perfect for capturing details while they're fresh
 - **Dream Titles**: Voice input for quick title creation
-- **AI Interactions**: Ask questions about your dreams using voice commands
 - **Cross-Platform Support**: Works seamlessly on iOS, Android, and web
 - **Real-Time Transcription**: See your words appear as you speak
 
