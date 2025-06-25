@@ -1,33 +1,87 @@
+/**
+ * Dream Card Component
+ * 
+ * A reusable card component for displaying dream entries in the journal.
+ * Features include mood indicators, timestamp display, preview text,
+ * and interactive menu for editing/deleting dreams.
+ * 
+ * Key Features:
+ * - Mood-based color coding and icons
+ * - Relative timestamp formatting
+ * - Text preview with truncation
+ * - Slide-out action menu
+ * - Touch interactions for navigation
+ * - Smooth animations and transitions
+ * 
+ * @author Cole Puls
+ * @version 1.0.0
+ * @since 2024
+ */
+
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { EllipsisVertical, Pencil, Trash, Clock, Brain, Heart, Frown, Meh, Zap, AlertTriangle } from 'lucide-react-native';
 import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutRight } from 'react-native-reanimated';
 
+/**
+ * Dream Card Component
+ * 
+ * Displays a single dream entry with interactive elements and visual indicators.
+ * Handles mood display, timestamp formatting, and user interactions.
+ * 
+ * @param {Object} dream - Dream object containing id, title, text, mood, timestamp
+ * @param {Function} onEdit - Callback function for editing the dream
+ * @param {Function} onDelete - Callback function for deleting the dream
+ * @param {Object} navigation - React Navigation object for screen transitions
+ * @returns {JSX.Element} Dream card with interactive elements
+ */
 export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
+  // State for controlling the action menu visibility
   const [showMenu, setShowMenu] = useState(false);
 
+  /**
+   * Get color for mood indicators based on mood type
+   * Provides consistent color coding across the app
+   * 
+   * @param {string} mood - The mood to get color for
+   * @returns {string} Hex color code for the mood
+   */
   const getMoodColor = (mood) => {
     const colors = {
-      Joyful: '#10B981',
-      Sad: '#3B82F6',
-      Neutral: '#6B7280',
-      Strange: '#F59E0B',
-      Scary: '#EF4444',
+      Joyful: '#10B981',    // Green for positive emotions
+      Sad: '#3B82F6',       // Blue for melancholic feelings
+      Neutral: '#6B7280',   // Gray for neutral states
+      Strange: '#F59E0B',   // Orange for unusual dreams
+      Scary: '#EF4444',     // Red for frightening content
     };
-    return colors[mood] || '#6B7280';
+    return colors[mood] || '#6B7280'; // Default to gray if mood not found
   };
 
+  /**
+   * Get appropriate icon for mood display
+   * Uses semantic icons that match the emotional content
+   * 
+   * @param {string} mood - The mood to get icon for
+   * @returns {Component} Lucide React Native icon component
+   */
   const getMoodIcon = (mood) => {
     const icons = {
-      Joyful: Heart,
-      Sad: Frown,
-      Neutral: Meh,
-      Strange: Zap,
-      Scary: AlertTriangle,
+      Joyful: Heart,        // Heart for positive emotions
+      Sad: Frown,           // Frown for sad emotions
+      Neutral: Meh,         // Meh for neutral emotions
+      Strange: Zap,         // Zap for unusual/strange emotions
+      Scary: AlertTriangle, // Alert triangle for scary content
     };
-    return icons[mood] || Meh;
+    return icons[mood] || Meh; // Default to neutral icon
   };
 
+  /**
+   * Format timestamp into human-readable relative time
+   * Shows "Just now", "Xh ago", "Yesterday", "X days ago", or full date
+   * 
+   * @param {string} timestamp - ISO timestamp string
+   * @returns {string} Formatted relative time string
+   */
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -51,12 +105,26 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
     }
   };
 
+  /**
+   * Truncate dream text for preview display
+   * Limits text to 120 characters with ellipsis for longer content
+   * 
+   * @param {string} text - Full dream text content
+   * @returns {string} Truncated preview text
+   */
   const getDreamPreview = (text) => {
     const maxLength = 120;
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
   };
 
+  /**
+   * Render mood tags with icons and colors
+   * Handles multiple moods separated by commas
+   * 
+   * @param {string} mood - Comma-separated mood string
+   * @returns {JSX.Element|null} Mood tag components or null
+   */
   const renderMoodTags = (mood) => {
     if (!mood) return null;
     
@@ -86,37 +154,52 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
     );
   };
 
+  /**
+   * Toggle the action menu visibility
+   */
   const toggleMenu = () => {
     setShowMenu(!showMenu);
   };
 
+  /**
+   * Handle edit action - close menu and call edit callback
+   */
   const handleEdit = () => {
     toggleMenu();
     onEdit(dream.id);
   };
 
+  /**
+   * Handle delete action - close menu and call delete callback
+   */
   const handleDelete = () => {
     toggleMenu();
     onDelete(dream.id);
   };
 
+  /**
+   * Navigate to dream view with analysis mode enabled
+   */
   const handleAnalysis = () => {
     navigation.navigate('View', { id: dream.id, showAnalysis: true });
   };
 
   return (
     <View style={styles.cardContainer}>
+      {/* Main card touchable area */}
       <TouchableOpacity
         style={styles.card}
         onPress={() => navigation.navigate('View', { id: dream.id })}
         activeOpacity={0.7}
       >
         <View style={styles.cardContent}>
+          {/* Card header with title and action buttons */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
               <Text style={styles.title} numberOfLines={2}>{dream.title}</Text>
             </View>
             <View style={styles.headerRight}>
+              {/* AI analysis button */}
               <TouchableOpacity 
                 style={styles.analysisButton}
                 onPress={handleAnalysis}
@@ -125,6 +208,7 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
                 <Brain size={16} color="#06D6A0" />
               </TouchableOpacity>
               
+              {/* Menu toggle button */}
               <TouchableOpacity 
                 style={styles.menuButton}
                 onPress={toggleMenu}
@@ -135,15 +219,18 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
             </View>
           </View>
 
+          {/* Dream text preview */}
           <Text style={styles.preview} numberOfLines={3}>
             {getDreamPreview(dream.text)}
           </Text>
 
+          {/* Card footer with mood tags and timestamp */}
           <View style={styles.footer}>
             <View style={styles.footerLeft}>
               {renderMoodTags(dream.mood)}
             </View>
 
+            {/* Timestamp display */}
             {dream.timestamp && (
               <View style={styles.dateContainer}>
                 <Clock size={12} color="#6B7280" />
@@ -154,6 +241,7 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
         </View>
       </TouchableOpacity>
 
+      {/* Slide-out action menu */}
       {showMenu && (
         <Animated.View 
           entering={SlideInRight.duration(200)} 
@@ -161,6 +249,7 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
           style={styles.menu}
         >
           <View style={styles.menuContent}>
+            {/* Edit action */}
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={handleEdit}
@@ -169,6 +258,7 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
               <Text style={styles.menuText}>Edit</Text>
             </TouchableOpacity>
             <View style={styles.menuDivider} />
+            {/* Delete action */}
             <TouchableOpacity 
               style={styles.menuItem}
               onPress={handleDelete}
@@ -183,11 +273,18 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
   );
 }
 
+/**
+ * Styles for the Dream Card component
+ * Uses a dark theme with purple accents and smooth transitions
+ */
 const styles = StyleSheet.create({
+  // Container for the entire card with menu positioning
   cardContainer: {
     marginVertical: 8,
     position: 'relative',
   },
+  
+  // Main card styling with dark theme and shadows
   card: {
     backgroundColor: '#1A1A1A',
     borderRadius: 16,

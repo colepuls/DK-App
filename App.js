@@ -1,3 +1,20 @@
+/**
+ * Dream Journal App - Main Application Component
+ * 
+ * This is the root component of the Dream Journal application, a React Native app
+ * that allows users to record, analyze, and track their dreams with AI assistance.
+ * 
+ * Key Features:
+ * - Custom dark theme with purple accent colors
+ * - Bottom tab navigation with animated transitions
+ * - Stack navigation for dream viewing
+ * - Gesture handling for smooth interactions
+ * 
+ * @author Cole Puls
+ * @version 1.0.0
+ * @since 2024
+ */
+
 import React, { useRef, useState } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,31 +34,48 @@ import Stats from './screens/Stats';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+/**
+ * Custom dark theme configuration for the app
+ * Uses a sophisticated color palette with purple accents and dark backgrounds
+ * for optimal readability and modern aesthetics
+ */
 const DarkTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: '#0A0A0A',
-    text: '#FFFFFF',
-    card: '#1A1A1A',
-    border: '#2A2A2A',
-    primary: '#8B5CF6',
-    secondary: '#A855F7',
-    accent: '#06D6A0',
-    success: '#10B981',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    notification: '#3B82F6',
+    background: '#0A0A0A',        // Deep black background
+    text: '#FFFFFF',              // Pure white text
+    card: '#1A1A1A',              // Dark card backgrounds
+    border: '#2A2A2A',            // Subtle borders
+    primary: '#8B5CF6',           // Main purple accent
+    secondary: '#A855F7',         // Secondary purple
+    accent: '#06D6A0',            // Teal accent for highlights
+    success: '#10B981',           // Green for success states
+    warning: '#F59E0B',           // Orange for warnings
+    error: '#EF4444',             // Red for errors
+    notification: '#3B82F6',      // Blue for notifications
   },
 };
 
-// Custom Tab Bar Component
+/**
+ * Custom Tab Bar Component
+ * 
+ * Creates a floating tab bar with smooth animations and visual feedback.
+ * Each tab has an icon that changes color and size based on focus state.
+ * 
+ * @param {Object} state - Current navigation state
+ * @param {Object} descriptors - Tab descriptors with options
+ * @param {Object} navigation - Navigation object
+ * @returns {JSX.Element} Custom tab bar component
+ */
 function CustomTabBar({ state, descriptors, navigation }) {
   return (
     <View style={styles.tabBarContainer}>
       <View style={styles.tabBar}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
+          
+          // Determine tab label - prioritize tabBarLabel, then title, then route name
           const label = options.tabBarLabel !== undefined
             ? options.tabBarLabel
             : options.title !== undefined
@@ -50,6 +84,10 @@ function CustomTabBar({ state, descriptors, navigation }) {
 
           const isFocused = state.index === index;
 
+          /**
+           * Handle tab press with proper navigation events
+           * Prevents default behavior if already focused or event is prevented
+           */
           const onPress = () => {
             const event = navigation.emit({
               type: 'tabPress',
@@ -62,6 +100,9 @@ function CustomTabBar({ state, descriptors, navigation }) {
             }
           };
 
+          /**
+           * Handle long press for accessibility and additional actions
+           */
           const onLongPress = () => {
             navigation.emit({
               type: 'tabLongPress',
@@ -69,6 +110,10 @@ function CustomTabBar({ state, descriptors, navigation }) {
             });
           };
 
+          /**
+           * Get appropriate icon for each tab with dynamic sizing and coloring
+           * Icons are slightly larger when focused for better visual feedback
+           */
           const getIcon = () => {
             const iconSize = isFocused ? 18 : 16;
             const iconColor = isFocused ? '#8B5CF6' : '#6B7280';
@@ -117,7 +162,14 @@ function CustomTabBar({ state, descriptors, navigation }) {
   );
 }
 
-// Tab Navigator Component
+/**
+ * Tab Navigator Component
+ * 
+ * Sets up the bottom tab navigation with custom styling and animations.
+ * Each tab represents a main section of the app: Journal, Create, Stats, and Assistant.
+ * 
+ * @returns {JSX.Element} Tab navigator with all main screens
+ */
 function TabNavigator() {
   return (
     <Tab.Navigator 
@@ -139,6 +191,7 @@ function TabNavigator() {
         animationDuration: 300,
       }}
     >
+      {/* Home/Journal Tab - Main dream list and recent entries */}
       <Tab.Screen 
         name="Home" 
         component={Home} 
@@ -148,6 +201,8 @@ function TabNavigator() {
           tabBarLabel: 'Journal',
         }} 
       />
+      
+      {/* Create Tab - New dream entry with AI assistance */}
       <Tab.Screen 
         name="Create" 
         component={DreamInput} 
@@ -157,6 +212,8 @@ function TabNavigator() {
           tabBarLabel: 'Create',
         }} 
       />
+      
+      {/* Stats Tab - Dream analytics and insights */}
       <Tab.Screen 
         name="Stats" 
         component={Stats} 
@@ -166,6 +223,8 @@ function TabNavigator() {
           tabBarLabel: 'Stats',
         }} 
       />
+      
+      {/* Help Tab - AI assistant for dream interpretation */}
       <Tab.Screen 
         name="Help" 
         component={AIChat} 
@@ -179,6 +238,15 @@ function TabNavigator() {
   );
 }
 
+/**
+ * Main App Component
+ * 
+ * Root component that wraps the entire application with necessary providers
+ * and sets up the navigation structure. Uses GestureHandlerRootView for
+ * smooth gesture interactions throughout the app.
+ * 
+ * @returns {JSX.Element} Complete app with navigation and theming
+ */
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -192,11 +260,14 @@ export default function App() {
             gestureDirection: 'horizontal',
           }}
         >
+          {/* Main tab navigator as the root screen */}
           <Stack.Screen 
             name="Main" 
             component={TabNavigator} 
             options={{ headerShown: false }} 
           />
+          
+          {/* Dream view screen for detailed dream reading */}
           <Stack.Screen 
             name="View" 
             component={DreamView} 
@@ -208,7 +279,12 @@ export default function App() {
   );
 }
 
+/**
+ * Styles for the custom tab bar and navigation components
+ * Uses a modern floating design with subtle shadows and smooth transitions
+ */
 const styles = StyleSheet.create({
+  // Container for the floating tab bar
   tabBarContainer: {
     position: 'absolute',
     bottom: 20,
@@ -218,6 +294,8 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingTop: 4,
   },
+  
+  // Main tab bar styling with dark theme and rounded corners
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#1A1A1A',
@@ -235,6 +313,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 4,
   },
+  
+  // Individual tab button styling
   tabButton: {
     flex: 1,
     alignItems: 'center',
@@ -242,6 +322,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 1,
   },
+  
+  // Tab content container with centered alignment
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -250,6 +332,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     minWidth: 36,
   },
+  
+  // Active tab styling with subtle glow effect
   tabContentActive: {
     shadowColor: '#8B5CF6',
     shadowOffset: {
@@ -260,15 +344,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  
+  // Icon container for proper positioning
   iconContainer: {
     position: 'relative',
   },
+  
+  // Tab label styling for accessibility
   tabLabel: {
     fontSize: 9,
     fontWeight: '500',
     color: '#6B7280',
     textAlign: 'center',
   },
+  
+  // Active tab label styling
   tabLabelActive: {
     color: '#8B5CF6',
     fontWeight: '600',

@@ -1,3 +1,21 @@
+/**
+ * Create Screen - New Dream Entry
+ * 
+ * This screen allows users to create new dream entries with AI-assisted
+ * mood analysis. Features include:
+ * 
+ * - Text input for dream content with real-time validation
+ * - Speech-to-text functionality for hands-free input
+ * - AI-powered mood analysis using Gemini API
+ * - Swipe navigation between tabs
+ * - Smooth animations and transitions
+ * - Auto-save with timestamp and metadata
+ * 
+ * @author Cole Puls
+ * @version 1.0.0
+ * @since 2024
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, TextInput, StyleSheet, Alert, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +39,17 @@ import { generateMoodTag } from '../apis/GeminiAPI';
 import Header from '../components/Header';
 import { useFocusEffect } from '@react-navigation/native';
 
+/**
+ * Create Screen Component
+ * 
+ * Main screen for creating new dream entries with AI assistance.
+ * Handles text input, speech recognition, mood analysis, and dream storage.
+ * 
+ * @param {Object} navigation - React Navigation object for screen transitions
+ * @returns {JSX.Element} Create screen with input forms and controls
+ */
 export default function Create({ navigation }) {
+  // Core state for dream creation
   const [body, setBody] = useState('');
   const [title, setTitle] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -29,18 +57,23 @@ export default function Create({ navigation }) {
   const [savedMood, setSavedMood] = useState('');
   const [generatedMood, setGeneratedMood] = useState('');
 
-  // Swipe navigation setup
+  // Swipe navigation configuration
   const screenWidth = Dimensions.get('window').width;
-  const SWIPE_THRESHOLD = screenWidth * 0.3;
+  const SWIPE_THRESHOLD = screenWidth * 0.3; // 30% of screen width triggers navigation
   
-  // Animation values for smooth transitions
+  // Animation shared values for smooth transitions
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
 
-  // Animation values for staggered elements
+  // Staggered animation values for progressive UI reveal
   const inputOpacity = useSharedValue(0);
   const buttonOpacity = useSharedValue(0);
 
+  /**
+   * Gesture handler for swipe navigation between tabs
+   * Detects horizontal swipes and navigates to adjacent screens
+   * with smooth spring animations and velocity-based triggers
+   */
   const gestureHandler = useAnimatedGestureHandler({
     onActive: (event) => {
       translateX.value = event.translationX;
@@ -49,28 +82,31 @@ export default function Create({ navigation }) {
       const { translationX, velocityX } = event;
       
       if (translationX > SWIPE_THRESHOLD || velocityX > 500) {
-        // Swipe right - navigate to Home
+        // Swipe right - navigate to Home/Journal tab
         translateX.value = withSpring(screenWidth, { damping: 20, stiffness: 200 });
         opacity.value = withTiming(0, { duration: 200 });
         runOnJS(navigation.navigate)('Home');
       } else if (translationX < -SWIPE_THRESHOLD || velocityX < -500) {
-        // Swipe left - navigate to Stats
+        // Swipe left - navigate to Stats tab
         translateX.value = withSpring(-screenWidth, { damping: 20, stiffness: 200 });
         opacity.value = withTiming(0, { duration: 200 });
         runOnJS(navigation.navigate)('Stats');
       } else {
-        // Reset to original position
+        // Reset to original position if swipe doesn't meet threshold
         translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
         opacity.value = withTiming(1, { duration: 200 });
       }
     },
     onFail: () => {
-      // Reset values if gesture fails
+      // Reset values if gesture fails or is interrupted
       translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
       opacity.value = withTiming(1, { duration: 200 });
     },
   });
 
+  /**
+   * Animated style for the main container with transform and opacity
+   */
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -80,7 +116,7 @@ export default function Create({ navigation }) {
     };
   });
 
-  // Animated styles for staggered elements
+  // Individual animated styles for staggered UI elements
   const inputStyle = useAnimatedStyle(() => ({
     opacity: inputOpacity.value,
   }));
@@ -89,19 +125,22 @@ export default function Create({ navigation }) {
     opacity: buttonOpacity.value,
   }));
 
-  // Reset animation values when screen comes into focus
+  /**
+   * Reset and trigger animations when screen comes into focus
+   * Creates a staggered animation sequence for smooth UI reveal
+   * Only shows save button if there's already text content
+   */
   useFocusEffect(
     useCallback(() => {
-      // Reset translateX to 0
+      // Reset main animation values
       translateX.value = 0;
-      // Ensure opacity is 1 when screen comes into focus
       opacity.value = 1;
 
       // Reset staggered animation values
       inputOpacity.value = 0;
       buttonOpacity.value = 0;
 
-      // Trigger staggered animations
+      // Trigger staggered animations with cascading timing
       inputOpacity.value = withTiming(1, { duration: 600 }, () => {
         // Only show button if there's already text
         if (body.trim()) {
@@ -111,7 +150,10 @@ export default function Create({ navigation }) {
     }, []) // Remove body dependency to prevent re-triggering on every keystroke
   );
 
-  // Separate effect to handle button visibility when text changes
+  /**
+   * Handle button visibility when text content changes
+   * Shows/hides save button based on whether there's content to save
+   */
   useEffect(() => {
     if (body.trim()) {
       buttonOpacity.value = withTiming(1, { duration: 300 });
@@ -120,7 +162,13 @@ export default function Create({ navigation }) {
     }
   }, [body]);
 
-  // Helper function to sort dreams by timestamp (newest first)
+  /**
+   * Sort dreams by timestamp in descending order (newest first)
+   * Handles cases where timestamp might be missing
+   * 
+   * @param {Array} dreamsArray - Array of dream objects to sort
+   * @returns {Array} Sorted array of dreams
+   */
   const sortDreamsByTimestamp = (dreamsArray) => {
     return dreamsArray.sort((a, b) => {
       const timestampA = new Date(a.timestamp || 0);
@@ -129,6 +177,10 @@ export default function Create({ navigation }) {
     });
   };
 
+  /**
+   * Handle dream submission with AI mood analysis
+   * Generates mood tag using Gemini API before showing save modal
+   */
   const handleSubmit = async () => {
     if (!body.trim()) return;
     
@@ -147,6 +199,11 @@ export default function Create({ navigation }) {
     setShowModal(true);
   };
 
+  /**
+   * Save dream to AsyncStorage with metadata
+   * Creates new dream object with timestamp and AI-generated mood
+   * Maintains sorted order in storage
+   */
   const saveDream = async () => {
     if (!title.trim()) return;
 
@@ -178,6 +235,12 @@ export default function Create({ navigation }) {
     }
   };
 
+  /**
+   * Process speech-to-text input and append to existing content
+   * Handles proper spacing and punctuation between speech segments
+   * 
+   * @param {string} text - Speech recognition result text
+   */
   const handleSpeechText = (text) => {
     // Append the speech text to the existing text with proper spacing
     setBody(prevBody => {

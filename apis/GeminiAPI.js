@@ -1,12 +1,42 @@
-// Google Gemini API for Dream Journaling App
+/**
+ * Google Gemini API Integration for Dream Journaling App
+ * 
+ * This module provides AI-powered functionality for the Dream Journal app,
+ * including mood analysis, dream interpretation, and intelligent assistance.
+ * Uses Google's Gemini 1.5 Flash model for fast, cost-effective AI processing.
+ * 
+ * Key Features:
+ * - Dream mood analysis and categorization
+ * - Dream interpretation and insights
+ * - Contextual help system
+ * - Robust error handling and retry logic
+ * - Request timeout management
+ * 
+ * @author Cole Puls
+ * @version 1.0.0
+ * @since 2024
+ */
+
+// API Configuration
 const GEMINI_API_KEY = 'AIzaSyCPb0P5DEiw1H4ZwYkw-jWnKRBty68m-Cs';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_MODEL = 'gemini-1.5-flash'; // Fast and cost-effective model
 
-// Main query function
+/**
+ * Main query function for interacting with Gemini API
+ * 
+ * Handles all communication with the Gemini API including error handling,
+ * retry logic, and timeout management. Uses AbortController for request cancellation.
+ * 
+ * @param {string} prompt - The text prompt to send to Gemini
+ * @param {Object} context - Optional context data (currently unused)
+ * @param {number} retries - Number of retry attempts (default: 2)
+ * @returns {Promise<string>} AI response text or error message
+ */
 export const queryGemini = async (prompt, context = null, retries = 2) => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Set up request timeout using AbortController
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
@@ -26,10 +56,10 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
             }
           ],
           generationConfig: {
-            maxOutputTokens: 500,
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40
+            maxOutputTokens: 500,    // Limit response length for cost control
+            temperature: 0.7,        // Balanced creativity vs consistency
+            topP: 0.8,              // Nucleus sampling for quality
+            topK: 40                // Top-k sampling for diversity
           }
         }),
         signal: controller.signal
@@ -43,6 +73,7 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
 
       const data = await response.json();
       
+      // Extract response text from Gemini API response structure
       if (data.candidates && data.candidates[0] && data.candidates[0].content) {
         return data.candidates[0].content.parts[0].text;
       } else {
@@ -52,6 +83,7 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
     } catch (error) {
       console.error(`Error querying Gemini (attempt ${attempt + 1}/${retries + 1}):`, error);
       
+      // Handle timeout errors specifically
       if (error.name === 'AbortError') {
         if (attempt < retries) {
           console.log(`Request timed out, retrying (attempt ${attempt + 1}/${retries + 1})...`);
@@ -61,6 +93,7 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
         return 'Request timed out. Please try again.';
       }
       
+      // Retry on other errors
       if (attempt < retries) {
         console.log(`Retrying request (attempt ${attempt + 1}/${retries + 1})...`);
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -74,7 +107,17 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
   return 'Error connecting to AI service.';
 };
 
-// Mood tag generation with standardized categories
+/**
+ * Generate mood tag for dream content using AI analysis
+ * 
+ * Analyzes dream text and categorizes it into standardized mood categories.
+ * Uses a comprehensive prompt to consider emotional tone, intensity, and overall feeling.
+ * Maps server responses to client-side mood categories for consistency.
+ * 
+ * @param {string} dreamText - The dream content to analyze
+ * @param {number} retries - Number of retry attempts (default: 2)
+ * @returns {Promise<string>} Categorized mood tag (Joyful, Sad, Neutral, Strange, Scary)
+ */
 export const generateMoodTag = async (dreamText, retries = 2) => {
   const moodPrompt = `Analyze the following dream and determine the most accurate mood tag. 
 
@@ -97,8 +140,9 @@ Respond with ONLY the single most appropriate mood tag, nothing else.`;
     const response = await queryGemini(moodPrompt);
     const mood = response.trim().toLowerCase();
     
-    // Map server mood categories to client categories
+    // Map server mood categories to client categories for consistency
     const moodMapping = {
+      // Positive emotions -> Joyful
       'peaceful': 'Joyful',
       'joyful': 'Joyful',
       'exciting': 'Joyful',
@@ -107,6 +151,8 @@ Respond with ONLY the single most appropriate mood tag, nothing else.`;
       'grateful': 'Joyful',
       'loving': 'Joyful',
       'confident': 'Joyful',
+      
+      // Negative emotions -> Scary or Sad
       'scary': 'Scary',
       'scared': 'Scary',
       'anxious': 'Scary',
@@ -116,24 +162,40 @@ Respond with ONLY the single most appropriate mood tag, nothing else.`;
       'frustrated': 'Sad',
       'lonely': 'Sad',
       'guilty': 'Sad',
+      
+      // Unusual emotions -> Strange
       'mysterious': 'Strange',
       'surreal': 'Strange',
       'bizarre': 'Strange',
+      
+      // Intense emotions -> Scary
       'overwhelming': 'Scary',
       'intense': 'Scary',
+      
+      // Neutral emotions -> Neutral
       'calm': 'Neutral',
       'neutral': 'Neutral',
       'mixed': 'Neutral'
     };
     
-    return moodMapping[mood] || 'Neutral';
+    return moodMapping[mood] || 'Neutral'; // Default to Neutral if mood not recognized
   } catch (error) {
     console.error('Error generating mood tag:', error);
-    return 'Neutral';
+    return 'Neutral'; // Safe fallback
   }
 };
 
-// Dream analysis with insights
+/**
+ * Analyze dream content and provide insights
+ * 
+ * Provides intelligent interpretation of dream content with context from
+ * previous dreams. Offers meaningful insights about patterns, emotions,
+ * and potential meanings.
+ * 
+ * @param {string} dreamText - The dream content to analyze
+ * @param {Array} dreamHistory - Array of previous dream objects for context
+ * @returns {Promise<string>} AI-generated dream analysis and insights
+ */
 export const analyzeDream = async (dreamText, dreamHistory = []) => {
   const analysisPrompt = `You are a dream analysis expert helping users understand their dreams. 
 
@@ -158,7 +220,17 @@ Keep your response helpful, supportive, and not too long (2-3 sentences).`;
   }
 };
 
-// Enhanced help system with dream context
+/**
+ * Enhanced help system with dream context
+ * 
+ * Provides contextual assistance based on user's dream journal data.
+ * Offers personalized advice about app usage, dream journaling tips,
+ * and pattern recognition.
+ * 
+ * @param {string} question - User's help question
+ * @param {Array} dreamData - Array of user's dream objects for context
+ * @returns {Promise<string>} AI-generated help response
+ */
 export const getDreamHelp = async (question, dreamData = []) => {
   const helpPrompt = `You are a helpful assistant for a dream journaling app. 
 
@@ -186,7 +258,15 @@ Keep responses friendly and concise.`;
   }
 };
 
-// Helper function to get mood distribution
+/**
+ * Helper function to calculate mood distribution from dream data
+ * 
+ * Analyzes the user's dream collection to provide context for AI responses.
+ * Creates a summary of mood patterns for personalized assistance.
+ * 
+ * @param {Array} dreams - Array of dream objects with mood properties
+ * @returns {string} Formatted string of mood counts
+ */
 const getMoodDistribution = (dreams) => {
   const moodCounts = {};
   dreams.forEach(dream => {
