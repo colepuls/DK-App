@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { BarChart, PieChart } from 'react-native-chart-kit';
-import { BarChart3, PieChart as PieChartIcon, TrendingUp, Moon, Calendar, Heart } from 'lucide-react-native';
+import { BarChart, PieChart, LineChart } from 'react-native-chart-kit';
+import { BarChart3, PieChart as PieChartIcon, TrendingUp, Moon, Calendar, Heart, Clock } from 'lucide-react-native';
 import Animated, { 
   FadeIn,
   useSharedValue,
@@ -44,6 +44,8 @@ export default function Stats({ navigation }) {
   const card3Opacity = useSharedValue(0);
   const chart1Opacity = useSharedValue(0);
   const chart2Opacity = useSharedValue(0);
+  const chart3Opacity = useSharedValue(0);
+  const chart5Opacity = useSharedValue(0);
   const emptyStateOpacity = useSharedValue(0);
 
   const gestureHandler = useAnimatedGestureHandler({
@@ -106,6 +108,14 @@ export default function Stats({ navigation }) {
     opacity: chart2Opacity.value,
   }));
 
+  const chart3Style = useAnimatedStyle(() => ({
+    opacity: chart3Opacity.value,
+  }));
+
+  const chart5Style = useAnimatedStyle(() => ({
+    opacity: chart5Opacity.value,
+  }));
+
   const emptyStateStyle = useAnimatedStyle(() => ({
     opacity: emptyStateOpacity.value,
   }));
@@ -124,15 +134,21 @@ export default function Stats({ navigation }) {
       card3Opacity.value = 0;
       chart1Opacity.value = 0;
       chart2Opacity.value = 0;
+      chart3Opacity.value = 0;
+      chart5Opacity.value = 0;
       emptyStateOpacity.value = 0;
 
       // Animate cards in sequence with faster timing
       card1Opacity.value = withTiming(1, { duration: 300 }, () => {
         card2Opacity.value = withTiming(1, { duration: 300 }, () => {
           card3Opacity.value = withTiming(1, { duration: 300 }, () => {
-            // Animate charts
+            // Animate charts in sequence
             chart1Opacity.value = withTiming(1, { duration: 300 }, () => {
-              chart2Opacity.value = withTiming(1, { duration: 300 });
+              chart2Opacity.value = withTiming(1, { duration: 300 }, () => {
+                chart3Opacity.value = withTiming(1, { duration: 300 }, () => {
+                  chart5Opacity.value = withTiming(1, { duration: 300 });
+                });
+              });
             });
           });
         });
@@ -188,12 +204,50 @@ export default function Stats({ navigation }) {
       });
     }
 
+    // Monthly trend (last 6 months)
+    const monthlyTrend = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now);
+      date.setMonth(date.getMonth() - i);
+      const monthDreams = dreamsData.filter(dream => {
+        const dreamDate = new Date(dream.timestamp);
+        return dreamDate.getMonth() === date.getMonth() && 
+               dreamDate.getFullYear() === date.getFullYear();
+      });
+      monthlyTrend.push({
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        count: monthDreams.length
+      });
+    }
+
+
+
+    // Time of day analysis (when dreams are recorded)
+    const timeRanges = [
+      { label: 'Morning', hour: 6, count: 0 },
+      { label: 'Afternoon', hour: 12, count: 0 },
+      { label: 'Evening', hour: 18, count: 0 },
+      { label: 'Night', hour: 22, count: 0 }
+    ];
+    
+    dreamsData.forEach(dream => {
+      const hour = new Date(dream.timestamp).getHours();
+      if (hour >= 6 && hour < 12) timeRanges[0].count++;
+      else if (hour >= 12 && hour < 18) timeRanges[1].count++;
+      else if (hour >= 18 && hour < 22) timeRanges[2].count++;
+      else timeRanges[3].count++;
+    });
+
+
+
     setStats({
       totalDreams: dreamsData.length,
       moodCounts,
       mostCommonMood,
       averageDreamsPerMonth: Math.round((dreamsData.length / Math.max(1, getMonthsSinceFirstDream(dreamsData))) * 10) / 10,
-      recentActivity
+      recentActivity,
+      monthlyTrend,
+      timeOfDay: timeRanges
     });
   };
 
@@ -247,6 +301,23 @@ export default function Stats({ navigation }) {
       data: stats.recentActivity.map(item => item.count)
     }]
   };
+
+  const monthlyTrendData = {
+    labels: stats.monthlyTrend?.map(item => item.month) || [],
+    datasets: [{
+      data: stats.monthlyTrend?.map(item => item.count) || [0],
+      color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
+      strokeWidth: 3
+    }]
+  };
+
+  const timeOfDayData = stats.timeOfDay?.map((item, index) => ({
+    name: item.label,
+    population: item.count,
+    color: ['#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'][index],
+    legendFontColor: '#FFFFFF',
+    legendFontSize: 12,
+  })) || [];
 
   return (
     <PanGestureHandler
@@ -371,6 +442,67 @@ export default function Stats({ navigation }) {
                 />
               </Animated.View>
             )}
+
+            {/* Monthly Trend Chart */}
+            {stats.monthlyTrend && stats.monthlyTrend.some(item => item.count > 0) && (
+              <Animated.View style={[styles.chartContainer, chart3Style]}>
+                <View style={styles.chartHeader}>
+                  <TrendingUp size={20} color="#8B5CF6" />
+                  <Text style={styles.chartTitle}>Monthly Trend (Last 6 Months)</Text>
+                </View>
+                <LineChart
+                  data={monthlyTrendData}
+                  width={screenWidth - 80}
+                  height={200}
+                  chartConfig={{
+                    backgroundColor: '#1F2937',
+                    backgroundGradientFrom: '#1F2937',
+                    backgroundGradientTo: '#111827',
+                    decimalPlaces: 0,
+                    color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    style: { borderRadius: 16 },
+                    propsForDots: {
+                      r: '4',
+                      strokeWidth: '2',
+                      stroke: '#8B5CF6',
+                    },
+                  }}
+                  style={{
+                    marginVertical: 8,
+                    borderRadius: 16,
+                  }}
+                  bezier
+                  withDots
+                  withShadow={false}
+                  withInnerLines={false}
+                />
+              </Animated.View>
+            )}
+
+
+
+            {/* Time of Day Analysis Chart */}
+            {timeOfDayData.length > 0 && timeOfDayData.some(item => item.population > 0) && (
+              <Animated.View style={[styles.chartContainer, chart5Style]}>
+                <View style={styles.chartHeader}>
+                  <Clock size={20} color="#8B5CF6" />
+                  <Text style={styles.chartTitle}>Recording Time Analysis</Text>
+                </View>
+                <PieChart
+                  data={timeOfDayData}
+                  width={screenWidth - 80}
+                  height={220}
+                  chartConfig={chartConfig}
+                  accessor="population"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  absolute
+                />
+              </Animated.View>
+            )}
+
+
 
             {/* Empty State */}
             {stats.totalDreams === 0 && (

@@ -19,9 +19,19 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { EllipsisVertical, Pencil, Trash, Clock, Brain, Heart, Frown, Meh, Zap, AlertTriangle } from 'lucide-react-native';
-import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutRight } from 'react-native-reanimated';
+import { View, Text, TouchableOpacity, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { EllipsisVertical, Pencil, Trash, Clock, Heart, Frown, Meh, Zap, AlertTriangle } from 'lucide-react-native';
+import Animated, { 
+  FadeIn, 
+  FadeOut, 
+  SlideInRight, 
+  SlideOutRight, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  interpolate
+} from 'react-native-reanimated';
 
 /**
  * Dream Card Component
@@ -38,6 +48,12 @@ import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutRight } from 'react-na
 export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
   // State for controlling the action menu visibility
   const [showMenu, setShowMenu] = useState(false);
+  
+  // Animated values for button interactions
+  const menuButtonScale = useSharedValue(1);
+  const menuButtonRotation = useSharedValue(0);
+  const editButtonScale = useSharedValue(1);
+  const deleteButtonScale = useSharedValue(1);
 
   /**
    * Get color for mood indicators based on mood type
@@ -155,41 +171,104 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
   };
 
   /**
-   * Toggle the action menu visibility
+   * Close menu with proper animations
+   */
+  const closeMenu = () => {
+    if (showMenu) {
+      menuButtonRotation.value = withSpring(0, {
+        damping: 15,
+        stiffness: 150
+      });
+      menuButtonScale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 150
+      });
+      setShowMenu(false);
+    }
+  };
+
+  /**
+   * Toggle the action menu visibility with animations
    */
   const toggleMenu = () => {
-    setShowMenu(!showMenu);
+    if (showMenu) {
+      closeMenu();
+    } else {
+      // Opening menu
+      menuButtonRotation.value = withSpring(90, {
+        damping: 15,
+        stiffness: 150
+      });
+      menuButtonScale.value = withSpring(1.1, {
+        damping: 15,
+        stiffness: 150
+      });
+      setShowMenu(true);
+    }
   };
 
   /**
    * Handle edit action - close menu and call edit callback
    */
   const handleEdit = () => {
-    toggleMenu();
-    onEdit(dream.id);
+    editButtonScale.value = withSpring(0.95, { duration: 100 }, () => {
+      editButtonScale.value = withSpring(1);
+    });
+    setTimeout(() => {
+      closeMenu();
+      onEdit(dream.id);
+    }, 150);
   };
 
   /**
    * Handle delete action - close menu and call delete callback
    */
   const handleDelete = () => {
-    toggleMenu();
-    onDelete(dream.id);
+    deleteButtonScale.value = withSpring(0.95, { duration: 100 }, () => {
+      deleteButtonScale.value = withSpring(1);
+    });
+    setTimeout(() => {
+      closeMenu();
+      onDelete(dream.id);
+    }, 150);
   };
 
-  /**
-   * Navigate to dream view with analysis mode enabled
-   */
-  const handleAnalysis = () => {
-    navigation.navigate('View', { id: dream.id, showAnalysis: true });
-  };
+  // Animated styles
+  const menuButtonAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { scale: menuButtonScale.value },
+        { rotate: `${menuButtonRotation.value}deg` }
+      ],
+    };
+  });
+
+  const editButtonAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: editButtonScale.value }],
+    };
+  });
+
+  const deleteButtonAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: deleteButtonScale.value }],
+    };
+  });
+
+
 
   return (
     <View style={styles.cardContainer}>
       {/* Main card touchable area */}
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate('View', { id: dream.id })}
+        onPress={() => {
+          if (showMenu) {
+            closeMenu();
+          } else {
+            navigation.navigate('View', { id: dream.id });
+          }
+        }}
         activeOpacity={0.7}
       >
         <View style={styles.cardContent}>
@@ -199,23 +278,19 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
               <Text style={styles.title} numberOfLines={2}>{dream.title}</Text>
             </View>
             <View style={styles.headerRight}>
-              {/* AI analysis button */}
-              <TouchableOpacity 
-                style={styles.analysisButton}
-                onPress={handleAnalysis}
-                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-              >
-                <Brain size={16} color="#06D6A0" />
-              </TouchableOpacity>
-              
               {/* Menu toggle button */}
-              <TouchableOpacity 
-                style={styles.menuButton}
-                onPress={toggleMenu}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <EllipsisVertical size={20} color="#6B7280" />
-              </TouchableOpacity>
+              <Animated.View style={menuButtonAnimatedStyle}>
+                <TouchableOpacity 
+                  style={[styles.menuButton, showMenu && styles.menuButtonActive]}
+                  onPress={toggleMenu}
+                  activeOpacity={1}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <View style={[styles.menuButtonInner, showMenu && styles.menuButtonInnerActive]}>
+                    <EllipsisVertical size={14} color={showMenu ? "#FFFFFF" : "#9CA3AF"} />
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
           </View>
 
@@ -244,30 +319,40 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
       {/* Slide-out action menu */}
       {showMenu && (
         <Animated.View 
-          entering={SlideInRight.duration(200)} 
-          exiting={SlideOutRight.duration(200)}
+          entering={SlideInRight.duration(300).springify().damping(15).stiffness(150)} 
+          exiting={SlideOutRight.duration(200).springify().damping(20)}
           style={styles.menu}
         >
           <View style={styles.menuContent}>
             {/* Edit action */}
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={handleEdit}
-            >
-              <Pencil size={16} color="#8B5CF6" />
-              <Text style={styles.menuText}>Edit</Text>
-            </TouchableOpacity>
-            <View style={styles.menuDivider} />
+            <Animated.View style={editButtonAnimatedStyle}>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={handleEdit}
+                activeOpacity={1}
+              >
+                <Pencil size={14} color="#9CA3AF" />
+              </TouchableOpacity>
+            </Animated.View>
             {/* Delete action */}
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={handleDelete}
-            >
-              <Trash size={16} color="#EF4444" />
-              <Text style={[styles.menuText, { color: '#EF4444' }]}>Delete</Text>
-            </TouchableOpacity>
+            <Animated.View style={deleteButtonAnimatedStyle}>
+              <TouchableOpacity 
+                style={styles.menuItem}
+                onPress={handleDelete}
+                activeOpacity={1}
+              >
+                <Trash size={14} color="#9CA3AF" />
+              </TouchableOpacity>
+            </Animated.View>
           </View>
         </Animated.View>
+      )}
+
+      {/* Overlay to catch clicks outside menu */}
+      {showMenu && (
+        <TouchableWithoutFeedback onPress={closeMenu}>
+          <View style={styles.menuOverlay} />
+        </TouchableWithoutFeedback>
       )}
     </View>
   );
@@ -367,56 +452,80 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
+    backgroundColor: 'rgba(40, 40, 40, 0.9)',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3A3A3A',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 2,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
     zIndex: 1000,
+    overflow: 'hidden',
   },
   menuContent: {
-    padding: 8,
+    padding: 2,
+    flexDirection: 'row',
   },
   menuItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    justifyContent: 'center',
+    padding: 8,
+    borderRadius: 6,
+    marginHorizontal: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  menuText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: '#3A3A3A',
-    marginVertical: 4,
-  },
+
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  analysisButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    backgroundColor: 'transparent',
-  },
+
   menuButton: {
-    padding: 4,
-    borderRadius: 8,
+    borderRadius: 10,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  menuButtonInner: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(30, 30, 30, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuButtonInnerActive: {
+    backgroundColor: 'rgba(139, 92, 246, 0.8)',
+    borderColor: 'rgba(139, 92, 246, 0.6)',
+  },
+  menuButtonActive: {
+    shadowColor: '#8B5CF6',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  menuOverlay: {
+    position: 'absolute',
+    top: -1000,
+    left: -1000,
+    right: -1000,
+    bottom: -1000,
+    zIndex: 999,
   },
 });

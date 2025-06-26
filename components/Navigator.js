@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { House, BadgePlus, MessageCircleQuestion, Moon, BarChart3 } from 'lucide-react-native';
+import { Moon, PenTool, MessageCircle, BarChart3 } from 'lucide-react-native';
 
 export default function Navigator() {
   const navigation = useNavigation();
@@ -40,7 +40,7 @@ export default function Navigator() {
               styles.iconContainer,
               route.name === 'Home' && styles.activeIconContainer
             ]}>
-              <House 
+              <Moon 
                 size={getIconSize('Home')} 
                 color={getIconColor('Home')} 
               />
@@ -64,7 +64,7 @@ export default function Navigator() {
               styles.iconContainer,
               route.name === 'Create' && styles.activeIconContainer
             ]}>
-              <BadgePlus 
+              <PenTool 
                 size={getIconSize('Create')} 
                 color={getIconColor('Create')} 
               />
@@ -88,7 +88,7 @@ export default function Navigator() {
               styles.iconContainer,
               route.name === 'Help' && styles.activeIconContainer
             ]}>
-              <MessageCircleQuestion 
+              <MessageCircle 
                 size={getIconSize('Help')} 
                 color={getIconColor('Help')} 
               />

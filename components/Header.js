@@ -26,7 +26,6 @@ export default function Header({
           <View style={styles.iconContainer}>
             <Icon size={20} color="#8B5CF6" />
           </View>
-          <Text style={styles.headerTitle}>{title}</Text>
         </View>
         {ActionIcon && onActionPress && (
           <TouchableOpacity 
@@ -67,13 +66,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(139, 92, 246, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
   },
   actionButton: {
     width: 36,

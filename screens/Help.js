@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, SafeAreaView, Dimensions, Keyboard } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MessageCircle, Send, Brain, Lightbulb } from 'lucide-react-native';
 import Animated, { 
@@ -109,6 +109,7 @@ export default function Help({ navigation }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [dreamData, setDreamData] = useState([]);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const scrollRef = useRef();
 
   // Swipe navigation setup
@@ -194,6 +195,26 @@ export default function Help({ navigation }) {
     loadDreamData();
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      'keyboardWillShow',
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardWillHideListener = Keyboard.addListener(
+      'keyboardWillHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener?.remove();
+      keyboardWillHideListener?.remove();
+    };
+  }, []);
 
   const loadDreamData = async () => {
     try {
@@ -311,7 +332,7 @@ export default function Help({ navigation }) {
             </ScrollView>
 
             {/* Input */}
-            <Animated.View style={[styles.inputContainer, inputStyle]}>
+            <Animated.View style={[styles.inputContainer, inputStyle, { paddingBottom: keyboardVisible ? 20 : 80 }]}>
               <TextInput
                 placeholder="Ask me anything about your dreams..."
                 placeholderTextColor="#6B7280"
@@ -320,6 +341,7 @@ export default function Help({ navigation }) {
                 style={styles.input}
                 multiline
                 maxLength={500}
+                keyboardAppearance="dark"
               />
               <TouchableOpacity 
                 style={[styles.sendButton, !prompt.trim() && styles.sendButtonDisabled]}
@@ -461,7 +483,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0A',
     borderTopWidth: 1,
     borderTopColor: '#2A2A2A',
-    paddingBottom: 80,
   },
   input: {
     flex: 1,

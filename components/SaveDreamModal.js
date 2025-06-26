@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { X, Save, Heart, Frown, Meh, Zap, AlertTriangle } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import SpeechToText from './SpeechToText';
 
 export default function SaveDreamModal({ visible, titleValue, onTitleChange, onSave, onCancel, mood }) {
   const getMoodColor = (mood) => {
@@ -45,11 +44,6 @@ export default function SaveDreamModal({ visible, titleValue, onTitleChange, onS
         </View>
       </View>
     );
-  };
-
-  const handleSpeechText = (text) => {
-    // Set the speech text as the title
-    onTitleChange(text);
   };
 
   return (
@@ -96,13 +90,7 @@ export default function SaveDreamModal({ visible, titleValue, onTitleChange, onS
                   placeholderTextColor="#6B7280"
                   autoFocus={true}
                   testID="title-input"
-                />
-                
-                {/* Speech to Text Component */}
-                <SpeechToText 
-                  onTextReceived={handleSpeechText}
-                  disabled={false}
-                  placeholder="Tap to speak the title..."
+                  keyboardAppearance="dark"
                 />
               </View>
 

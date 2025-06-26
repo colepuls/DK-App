@@ -150,6 +150,7 @@ export default function TitleModal({ visible, titleValue, onTitleChange, onSave,
                 returnKeyType="done"
                 blurOnSubmit={false}
                 testID="title-input"
+                keyboardAppearance="dark"
               />
               <Text style={styles.characterCount}>
                 {titleValue.length}/100

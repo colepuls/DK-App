@@ -35,7 +35,7 @@ import { PanGestureHandler } from 'react-native-gesture-handler';
 import SaveDreamModal from '../components/SaveDreamModal';
 import SuccessModal from '../components/SuccessModal';
 import SpeechToText from '../components/SpeechToText';
-import { generateMoodTag } from '../apis/GeminiAPI';
+import { generateMoodTag, rewriteDream } from '../apis/GeminiAPI';
 import Header from '../components/Header';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -56,6 +56,8 @@ export default function Create({ navigation }) {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [savedMood, setSavedMood] = useState('');
   const [generatedMood, setGeneratedMood] = useState('');
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [rewrittenText, setRewrittenText] = useState('');
 
   // Swipe navigation configuration
   const screenWidth = Dimensions.get('window').width;
@@ -200,6 +202,28 @@ export default function Create({ navigation }) {
   };
 
   /**
+   * Handle AI rewrite of dream content
+   * Uses AI to improve grammar and writing quality while preserving all details
+   */
+  const handleRewrite = async () => {
+    if (!body.trim()) return;
+    
+    setIsRewriting(true);
+    try {
+      console.log('Rewriting dream with AI...');
+      const improvedText = await rewriteDream(body);
+      setRewrittenText(improvedText);
+      setBody(improvedText);
+      console.log('Dream rewritten successfully');
+    } catch (err) {
+      console.error('Failed to rewrite dream:', err);
+      Alert.alert('Error', 'Failed to rewrite dream. Please try again.');
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  /**
    * Save dream to AsyncStorage with metadata
    * Creates new dream object with timestamp and AI-generated mood
    * Maintains sorted order in storage
@@ -303,17 +327,14 @@ export default function Create({ navigation }) {
                   multiline
                   style={styles.input}
                   textAlignVertical="top"
+                  keyboardAppearance="dark"
                 />
                 <Text style={styles.characterCount}>
                   {body.length} characters
                 </Text>
                 
                 {/* Speech to Text Component */}
-                <SpeechToText 
-                  onTextReceived={handleSpeechText}
-                  disabled={false}
-                  placeholder="Tap to speak your dream..."
-                />
+                <SpeechToText />
               </Animated.View>
 
               {/* Action Buttons */}
@@ -326,6 +347,17 @@ export default function Create({ navigation }) {
                   >
                     <Save size={20} color="#FFFFFF" />
                     <Text style={styles.saveButtonText}>Save Dream</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={[styles.rewriteButton, isRewriting && styles.rewriteButtonDisabled]}
+                    onPress={handleRewrite}
+                    activeOpacity={0.8}
+                    disabled={isRewriting}
+                  >
+                    <Text style={styles.rewriteButtonText}>
+                      {isRewriting ? 'Improving...' : 'Improve Writing'}
+                    </Text>
                   </TouchableOpacity>
                 </Animated.View>
               )}
@@ -432,5 +464,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  rewriteButton: {
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    shadowColor: '#10B981',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  rewriteButtonDisabled: {
+    backgroundColor: '#374151',
+    opacity: 0.6,
+  },
+  rewriteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

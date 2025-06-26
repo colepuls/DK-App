@@ -2,14 +2,8 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { X, Save } from 'lucide-react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import SpeechToText from './SpeechToText';
 
 export default function EditDreamModal({ visible, titleValue, onTitleChange, onSave, onCancel }) {
-  const handleSpeechText = (text) => {
-    // Set the speech text as the title
-    onTitleChange(text);
-  };
-
   return (
     <Modal 
       visible={visible} 
@@ -54,13 +48,7 @@ export default function EditDreamModal({ visible, titleValue, onTitleChange, onS
                   placeholderTextColor="#6B7280"
                   autoFocus={true}
                   testID="title-input"
-                />
-                
-                {/* Speech to Text Component */}
-                <SpeechToText 
-                  onTextReceived={handleSpeechText}
-                  disabled={false}
-                  placeholder="Tap to speak the new title..."
+                  keyboardAppearance="dark"
                 />
               </View>
 

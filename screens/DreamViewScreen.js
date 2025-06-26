@@ -1,89 +1,55 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Eye, Tag, Calendar, Clock, Brain, ArrowLeft } from 'lucide-react-native';
-import Animated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, withDelay, FadeIn } from 'react-native-reanimated';
+import { Eye, Tag, Calendar, Clock, Brain, ArrowLeft, Hash } from 'lucide-react-native';
+import ReAnimated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, withDelay, FadeIn } from 'react-native-reanimated';
 import { analyzeDream } from '../apis/GeminiAPI';
 import Header from '../components/Header';
 import { useFocusEffect } from '@react-navigation/native';
+// import DreamSceneryViewer from '../components/DreamSceneryViewer';
 
-// Animated Thinking Component for Analysis Button
-const AnimatedAnalysisThinking = () => {
-  const dot1 = useSharedValue(0);
-  const dot2 = useSharedValue(0);
-  const dot3 = useSharedValue(0);
-  const brainScale = useSharedValue(1);
+// Simple animated thinking component using React Native's built-in Animated API
+const SimpleAnimatedThinking = () => {
+  const fadeAnim1 = useRef(new Animated.Value(0.3)).current;
+  const fadeAnim2 = useRef(new Animated.Value(0.3)).current;
+  const fadeAnim3 = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
-    // Animate dots in sequence
-    dot1.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 600 }),
-        withTiming(0, { duration: 600 })
-      ),
-      -1,
-      false
-    );
-    
-    dot2.value = withDelay(200, withRepeat(
-      withSequence(
-        withTiming(1, { duration: 600 }),
-        withTiming(0, { duration: 600 })
-      ),
-      -1,
-      false
-    ));
-    
-    dot3.value = withDelay(400, withRepeat(
-      withSequence(
-        withTiming(1, { duration: 600 }),
-        withTiming(0, { duration: 600 })
-      ),
-      -1,
-      false
-    ));
+    const animateDots = () => {
+      Animated.sequence([
+        Animated.timing(fadeAnim1, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(fadeAnim1, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+      ]).start();
 
-    // Animate brain icon
-    brainScale.value = withRepeat(
-      withSequence(
-        withTiming(1.1, { duration: 1000 }),
-        withTiming(1, { duration: 1000 })
-      ),
-      -1,
-      true
-    );
-  }, []);
+      setTimeout(() => {
+        Animated.sequence([
+          Animated.timing(fadeAnim2, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(fadeAnim2, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+        ]).start();
+      }, 200);
 
-  const dot1Style = useAnimatedStyle(() => ({
-    opacity: dot1.value,
-    transform: [{ scale: 0.8 + dot1.value * 0.2 }],
-  }));
+      setTimeout(() => {
+        Animated.sequence([
+          Animated.timing(fadeAnim3, { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(fadeAnim3, { toValue: 0.3, duration: 500, useNativeDriver: true }),
+        ]).start();
+      }, 400);
+    };
 
-  const dot2Style = useAnimatedStyle(() => ({
-    opacity: dot2.value,
-    transform: [{ scale: 0.8 + dot2.value * 0.2 }],
-  }));
+    animateDots();
+    const interval = setInterval(animateDots, 1200);
 
-  const dot3Style = useAnimatedStyle(() => ({
-    opacity: dot3.value,
-    transform: [{ scale: 0.8 + dot3.value * 0.2 }],
-  }));
-
-  const brainStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: brainScale.value }],
-  }));
+    return () => clearInterval(interval);
+  }, [fadeAnim1, fadeAnim2, fadeAnim3]);
 
   return (
     <View style={styles.thinkingContainer}>
-      <Animated.View style={brainStyle}>
-        <Brain size={14} color="#FFFFFF" />
-      </Animated.View>
+      <Brain size={14} color="#FFFFFF" />
       <Text style={styles.thinkingText}>Analyzing</Text>
       <View style={styles.dotsContainer}>
-        <Animated.View style={[styles.dot, dot1Style]} />
-        <Animated.View style={[styles.dot, dot2Style]} />
-        <Animated.View style={[styles.dot, dot3Style]} />
+        <Animated.View style={[styles.dot, { opacity: fadeAnim1 }]} />
+        <Animated.View style={[styles.dot, { opacity: fadeAnim2 }]} />
+        <Animated.View style={[styles.dot, { opacity: fadeAnim3 }]} />
       </View>
     </View>
   );
@@ -284,7 +250,7 @@ export default function DreamView({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <Animated.View entering={FadeIn.duration(400).delay(100)} style={{ flex: 1 }}>
+      <ReAnimated.View entering={FadeIn.duration(400).delay(100)} style={{ flex: 1 }}>
         <ScrollView 
           ref={scrollViewRef}
           style={styles.scrollView}
@@ -300,21 +266,21 @@ export default function DreamView({ route, navigation }) {
           />
 
           {/* Dream Content */}
-          <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.contentContainer}>
+          <ReAnimated.View entering={FadeInUp.delay(200).duration(800)} style={styles.contentContainer}>
             {/* Title Section */}
-            <Animated.View style={[styles.titleSection, titleStyle]}>
+            <ReAnimated.View style={[styles.titleSection, titleStyle]}>
               <Text style={styles.titleLabel}>Dream Title</Text>
               <Text style={styles.title}>{dream.title}</Text>
-            </Animated.View>
+            </ReAnimated.View>
 
             {/* Dream Text */}
-            <Animated.View style={[styles.textSection, textStyle]}>
+            <ReAnimated.View style={[styles.textSection, textStyle]}>
               <Text style={styles.textLabel}>Dream Description</Text>
               <Text style={styles.text}>{dream.text}</Text>
-            </Animated.View>
+            </ReAnimated.View>
 
             {/* Metadata */}
-            <Animated.View style={[styles.metadataSection, metadataStyle]}>
+            <ReAnimated.View style={[styles.metadataSection, metadataStyle]}>
               <View style={styles.metadataRow}>
                 <View style={styles.metadataItem}>
                   <View style={styles.metadataIcon}>
@@ -350,7 +316,7 @@ export default function DreamView({ route, navigation }) {
 
                 <View style={styles.metadataItem}>
                   <View style={styles.metadataIcon}>
-                    <Tag size={16} color="#8B5CF6" />
+                    <Hash size={16} color="#8B5CF6" />
                   </View>
                   <View style={styles.metadataContent}>
                     <Text style={styles.metadataLabel}>ID</Text>
@@ -358,11 +324,11 @@ export default function DreamView({ route, navigation }) {
                   </View>
                 </View>
               </View>
-            </Animated.View>
-          </Animated.View>
+            </ReAnimated.View>
+          </ReAnimated.View>
 
           {/* AI Analysis Section */}
-          <Animated.View style={[styles.analysisContainer, analysisStyle]}>
+          <ReAnimated.View style={[styles.analysisContainer, analysisStyle]}>
             <View style={styles.analysisHeader}>
               <View style={styles.analysisHeaderLeft}>
                 <Brain size={20} color="#06D6A0" />
@@ -383,7 +349,7 @@ export default function DreamView({ route, navigation }) {
                   activeOpacity={0.8}
                 >
                   {loading ? (
-                    <AnimatedAnalysisThinking />
+                    <SimpleAnimatedThinking />
                   ) : (
                     <>
                       <Brain size={14} color="#FFFFFF" />
@@ -395,9 +361,9 @@ export default function DreamView({ route, navigation }) {
             ) : (
               <Text style={styles.analysisText}>{dream.analysis}</Text>
             )}
-          </Animated.View>
+          </ReAnimated.View>
         </ScrollView>
-      </Animated.View>
+      </ReAnimated.View>
     </View>
   );
 }

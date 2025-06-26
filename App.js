@@ -9,6 +9,7 @@
  * - Bottom tab navigation with animated transitions
  * - Stack navigation for dream viewing
  * - Gesture handling for smooth interactions
+ * - Beautiful animated splash screen
  * 
  * @author Cole Puls
  * @version 1.0.0
@@ -20,7 +21,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { House, BadgePlus, MessageCircleQuestion, BarChart3 } from 'lucide-react-native';
+import { Moon, PenTool, MessageCircle, BarChart3 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -28,8 +29,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Home from './screens/Home';
 import DreamInput from './screens/Create';
 import AIChat from './screens/Help';
-import DreamView from './screens/View';
+import DreamView from './screens/DreamViewScreen';
 import Stats from './screens/Stats';
+import SplashScreen from './components/SplashScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -120,11 +122,11 @@ function CustomTabBar({ state, descriptors, navigation }) {
             
             switch (route.name) {
               case 'Home':
-                return <House size={iconSize} color={iconColor} />;
+                return <Moon size={iconSize} color={iconColor} />;
               case 'Create':
-                return <BadgePlus size={iconSize} color={iconColor} />;
+                return <PenTool size={iconSize} color={iconColor} />;
               case 'Help':
-                return <MessageCircleQuestion size={iconSize} color={iconColor} />;
+                return <MessageCircle size={iconSize} color={iconColor} />;
               case 'Stats':
                 return <BarChart3 size={iconSize} color={iconColor} />;
               default:
@@ -243,11 +245,27 @@ function TabNavigator() {
  * 
  * Root component that wraps the entire application with necessary providers
  * and sets up the navigation structure. Uses GestureHandlerRootView for
- * smooth gesture interactions throughout the app.
+ * smooth gesture interactions throughout the app. Includes a beautiful
+ * animated splash screen that displays on app launch.
  * 
  * @returns {JSX.Element} Complete app with navigation and theming
  */
 export default function App() {
+  const [showSplashScreen, setShowSplashScreen] = useState(true);
+
+  const handleSplashFinish = () => {
+    setShowSplashScreen(false);
+  };
+
+  if (showSplashScreen) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light" backgroundColor="#0A0A0A" />
+        <SplashScreen onFinish={handleSplashFinish} />
+      </GestureHandlerRootView>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer theme={DarkTheme}>

@@ -277,5 +277,41 @@ const getMoodDistribution = (dreams) => {
     .join(', ');
 };
 
+/**
+ * Rewrite dream content to improve English grammar and writing quality
+ * 
+ * Uses AI to enhance the writing while preserving all original details and meaning.
+ * Focuses on grammar correction, sentence structure, and flow improvement.
+ * 
+ * @param {string} dreamText - The original dream content to rewrite
+ * @param {number} retries - Number of retry attempts (default: 2)
+ * @returns {Promise<string>} AI-improved version of the dream text
+ */
+export const rewriteDream = async (dreamText, retries = 2) => {
+  const rewritePrompt = `You are a professional editor helping to improve the writing quality of a dream journal entry. 
+
+Your task is to rewrite the following dream text to:
+1. Fix any grammar errors
+2. Improve sentence structure and flow
+3. Make the writing more clear and engaging
+4. Preserve ALL original details and meaning exactly
+5. Keep the same emotional tone and personal voice
+6. Maintain the dream's authenticity and personal experience
+
+IMPORTANT: Do not add any new details, change the meaning, or alter the dream's content. Only improve the writing quality.
+
+Original dream text: "${dreamText}"
+
+Please provide the improved version while keeping all the original details intact.`;
+
+  try {
+    const response = await queryGemini(rewritePrompt, null, retries);
+    return response.trim();
+  } catch (error) {
+    console.error('Error rewriting dream:', error);
+    return dreamText; // Return original text if rewrite fails
+  }
+};
+
 // Backward compatibility - export the old function names
 export const queryOllama = queryGemini; 

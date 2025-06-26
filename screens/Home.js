@@ -317,6 +317,7 @@ export default function Home({ navigation }) {
               value={query}
               onChangeText={setQuery}
               style={styles.searchInput}
+              keyboardAppearance="dark"
             />
           </Animated.View>
 

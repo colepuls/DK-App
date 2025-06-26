@@ -1,3 +1,22 @@
+/**
+ * Dream Journal API Server
+ * 
+ * Express.js backend server providing AI-powered dream analysis capabilities
+ * for the Dream Journal mobile application. Integrates with Ollama for local
+ * AI model processing and provides robust error handling with fallbacks.
+ * 
+ * Key Features:
+ * - Dream mood analysis using local AI models
+ * - Dream interpretation and insights
+ * - Health monitoring for AI services
+ * - Comprehensive error handling and timeouts
+ * - CORS support for cross-origin requests
+ * 
+ * @author Cole Puls
+ * @version 1.0.0
+ * @since 2024
+ */
+
 const express = require('express');
 const cors = require('cors');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
@@ -6,21 +25,43 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configuration constants
+const OLLAMA_BASE_URL = 'http://localhost:11434';
+const DEFAULT_MODEL = 'mistral';
+const REQUEST_TIMEOUT = 120000; // 2 minutes
+const HEALTH_CHECK_TIMEOUT = 5000; // 5 seconds
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
+/**
+ * Health Check Endpoint
+ * 
+ * Basic health check to verify the API server is running.
+ * Useful for monitoring and load balancer health checks.
+ * 
+ * @route GET /health
+ * @returns {Object} Server status and message
+ */
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Dream Journal API is running' });
 });
 
-// Ollama health check endpoint
+/**
+ * Ollama Service Health Check
+ * 
+ * Verifies that the Ollama AI service is running and accessible.
+ * Returns available models and service status for debugging.
+ * 
+ * @route GET /health/ollama
+ * @returns {Object} Ollama service status and available models
+ */
 app.get('/health/ollama', async (req, res) => {
   try {
-    const ollamaResponse = await fetch('http://localhost:11434/api/tags', {
+    const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
       method: 'GET',
-      signal: AbortSignal.timeout(5000) // 5 second timeout for health check
+      signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT)
     });
     
     if (ollamaResponse.ok) {
@@ -47,10 +88,24 @@ app.get('/health/ollama', async (req, res) => {
   }
 });
 
-// Main API endpoint for Ollama requests
+/**
+ * General AI Text Generation Endpoint
+ * 
+ * Processes general AI text generation requests using Ollama.
+ * Supports custom model selection and includes comprehensive error handling.
+ * 
+ * @route POST /api/generate
+ * @param {string} prompt - The text prompt to send to the AI model
+ * @param {string} [model=mistral] - AI model to use for generation
+ * @returns {Object} AI-generated response text
+ * @throws {400} Missing prompt parameter
+ * @throws {503} Ollama service unavailable
+ * @throws {408} Request timeout
+ * @throws {500} Internal server error
+ */
 app.post('/api/generate', async (req, res) => {
   try {
-    const { prompt, model = 'mistral' } = req.body;
+    const { prompt, model = DEFAULT_MODEL } = req.body;
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -58,8 +113,8 @@ app.post('/api/generate', async (req, res) => {
 
     console.log(`Processing request for model: ${model}, prompt length: ${prompt.length}`);
 
-    // Make request to Ollama
-    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+    // Make request to Ollama with timeout
+    const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,8 +124,7 @@ app.post('/api/generate', async (req, res) => {
         prompt: prompt,
         stream: false
       }),
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(120000) // 120 second timeout (2 minutes)
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     });
 
     if (!ollamaResponse.ok) {
@@ -84,7 +138,7 @@ app.post('/api/generate', async (req, res) => {
   } catch (error) {
     console.error('Error in /api/generate:', error);
     
-    // Check if it's a connection error
+    // Handle different types of errors with appropriate responses
     if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       console.error('Ollama connection refused - service may not be running');
       return res.status(503).json({ 
@@ -94,7 +148,6 @@ app.post('/api/generate', async (req, res) => {
       });
     }
     
-    // Check if it's a timeout
     if (error.name === 'AbortError') {
       console.error('Request timed out after 120 seconds');
       return res.status(408).json({ 
@@ -111,7 +164,21 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Enhanced mood tag generation endpoint
+/**
+ * Dream Mood Analysis Endpoint
+ * 
+ * Analyzes dream content to determine emotional mood categories.
+ * Uses specialized prompting to categorize dreams into predefined mood tags
+ * for consistent classification across the application.
+ * 
+ * @route POST /api/mood
+ * @param {string} dreamText - The dream content to analyze for mood
+ * @returns {Object} Detected mood tag from available categories
+ * @throws {400} Missing dream text parameter
+ * @throws {503} Ollama service unavailable (returns 'neutral' fallback)
+ * @throws {408} Request timeout (returns 'neutral' fallback)
+ * @throws {500} Internal server error (returns 'neutral' fallback)
+ */
 app.post('/api/mood', async (req, res) => {
   try {
     const { dreamText } = req.body;
@@ -120,6 +187,7 @@ app.post('/api/mood', async (req, res) => {
       return res.status(400).json({ error: 'Dream text is required' });
     }
 
+    // Comprehensive mood analysis prompt with clear categories
     const moodPrompt = `Analyze the following dream and determine the most accurate mood tag. 
 
 Consider these factors:
@@ -137,18 +205,17 @@ Dream: "${dreamText}"
 
 Respond with ONLY the single most appropriate mood tag, nothing else.`;
 
-    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+    const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistral',
+        model: DEFAULT_MODEL,
         prompt: moodPrompt,
         stream: false
       }),
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(120000) // 120 second timeout (2 minutes)
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     });
 
     if (!ollamaResponse.ok) {
@@ -161,33 +228,47 @@ Respond with ONLY the single most appropriate mood tag, nothing else.`;
   } catch (error) {
     console.error('Error in /api/mood:', error);
     
-    // Check if it's a connection error
+    // Provide fallback mood for all error cases
     if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
       return res.status(503).json({ 
         error: 'AI service unavailable',
         message: 'Ollama is not running. Please start Ollama or check your connection.',
-        mood: 'neutral' // Fallback mood
+        mood: 'neutral'
       });
     }
     
-    // Check if it's a timeout
     if (error.name === 'AbortError') {
       return res.status(408).json({ 
         error: 'Request timeout',
         message: 'AI service took too long to respond.',
-        mood: 'neutral' // Fallback mood
+        mood: 'neutral'
       });
     }
     
     res.status(500).json({ 
       error: 'Internal server error',
       message: error.message,
-      mood: 'neutral' // Fallback mood
+      mood: 'neutral'
     });
   }
 });
 
-// Dream analysis endpoint
+/**
+ * Dream Content Analysis Endpoint
+ * 
+ * Provides comprehensive analysis and interpretation of dream content.
+ * Takes into account dream history for contextual insights and pattern recognition.
+ * Returns structured analysis with themes, emotions, and potential meanings.
+ * 
+ * @route POST /api/analyze
+ * @param {string} dreamText - The dream content to analyze
+ * @param {Array} [dreamHistory=[]] - Previous dreams for context
+ * @returns {Object} Detailed dream analysis and interpretation
+ * @throws {400} Missing dream text parameter
+ * @throws {503} AI service unavailable
+ * @throws {408} Request timeout
+ * @throws {500} Internal server error
+ */
 app.post('/api/analyze', async (req, res) => {
   try {
     const { dreamText, dreamHistory = [] } = req.body;
@@ -196,9 +277,16 @@ app.post('/api/analyze', async (req, res) => {
       return res.status(400).json({ error: 'Dream text is required' });
     }
 
+    // Create context from dream history for more personalized analysis
+    const historyContext = dreamHistory.length > 0 
+      ? `\n\nContext from recent dreams:\n${dreamHistory.slice(-3).map((d, i) => 
+          `${i + 1}. ${d.title}: ${d.text.substring(0, 100)}...`
+        ).join('\n')}`
+      : '';
+
     const analysisPrompt = `You are a dream analysis expert helping users understand their dreams. 
 
-${dreamHistory.length > 0 ? `Previous dreams context: ${dreamHistory.slice(-3).map(d => d.title).join(', ')}` : ''}
+${historyContext}
 
 Analyze this dream: "${dreamText}"
 
@@ -210,18 +298,17 @@ Provide insights on:
 
 Keep your response helpful, supportive, and not too long (2-3 sentences).`;
 
-    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+    const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistral',
+        model: DEFAULT_MODEL,
         prompt: analysisPrompt,
         stream: false
       }),
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(120000) // 120 second timeout (2 minutes)
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     });
 
     if (!ollamaResponse.ok) {
@@ -234,8 +321,9 @@ Keep your response helpful, supportive, and not too long (2-3 sentences).`;
   } catch (error) {
     console.error('Error in /api/analyze:', error);
     
-    // Check if it's a connection error
+    // Handle different types of errors with appropriate responses
     if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+      console.error('Ollama connection refused - service may not be running');
       return res.status(503).json({ 
         error: 'AI service unavailable',
         message: 'Ollama is not running. Please start Ollama or check your connection.',
@@ -243,8 +331,8 @@ Keep your response helpful, supportive, and not too long (2-3 sentences).`;
       });
     }
     
-    // Check if it's a timeout
     if (error.name === 'AbortError') {
+      console.error('Request timed out after 120 seconds');
       return res.status(408).json({ 
         error: 'Request timeout',
         message: 'AI service took too long to respond.',
@@ -296,18 +384,17 @@ Provide helpful, specific advice about:
 
 Keep responses friendly and concise.`;
 
-    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+    const ollamaResponse = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mistral',
+        model: DEFAULT_MODEL,
         prompt: helpPrompt,
         stream: false
       }),
-      // Add timeout to prevent hanging
-      signal: AbortSignal.timeout(120000) // 120 second timeout (2 minutes)
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT)
     });
 
     if (!ollamaResponse.ok) {
@@ -320,8 +407,9 @@ Keep responses friendly and concise.`;
   } catch (error) {
     console.error('Error in /api/help:', error);
     
-    // Check if it's a connection error
+    // Handle different types of errors with appropriate responses
     if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
+      console.error('Ollama connection refused - service may not be running');
       return res.status(503).json({ 
         error: 'AI service unavailable',
         message: 'Ollama is not running. Please start Ollama or check your connection.',
@@ -329,8 +417,8 @@ Keep responses friendly and concise.`;
       });
     }
     
-    // Check if it's a timeout
     if (error.name === 'AbortError') {
+      console.error('Request timed out after 120 seconds');
       return res.status(408).json({ 
         error: 'Request timeout',
         message: 'AI service took too long to respond.',

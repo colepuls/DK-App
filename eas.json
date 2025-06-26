@@ -11,6 +11,13 @@
     "preview": {
       "distribution": "internal"
     },
+    "internal": {
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "credentialsSource": "remote"
+      }
+    },
     "production": {
       "autoIncrement": true
     }
