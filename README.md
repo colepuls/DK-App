@@ -2,6 +2,10 @@
 
 A cross-platform dream journal application built with React Native and Expo.
 
+![React Native](https://img.shields.io/badge/React%20Native-0.79.4-blue?style=for-the-badge&logo=react)
+![Expo](https://img.shields.io/badge/Expo-53.0.12-black?style=for-the-badge&logo=expo)
+![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-lightgrey?style=for-the-badge)
+
 ## Features
 
 - Record and manage dream entries
@@ -19,38 +23,6 @@ A cross-platform dream journal application built with React Native and Expo.
 - AsyncStorage for data persistence
 - Google Gemini API for AI features
 
-## Installation
+---
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/colepuls/dk-app.git
-   cd dk-app
-   ```
-
-2. Install dependencies
-   ```bash
-   npm install
-   ```
-
-3. Start the development server
-   ```bash
-   npx expo start
-   ```
-
-## Configuration
-
-Set up your Google Gemini API key by running:
-```bash
-node setup-api-key.js
-```
-
-## Testing
-
-Run tests with:
-```bash
-npm test
-```
-
-## License
-
-MIT
+Made by Cole Puls
