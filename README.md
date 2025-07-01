@@ -15,6 +15,31 @@ A cross-platform dream journal application built with React Native and Expo.
 - Statistical insights and visualizations
 - Search and filter functionality
 
+## Screenshots
+
+<div align="center">
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.37.55.png" width="250" alt="App Screenshot 1"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.38.04.png" width="250" alt="App Screenshot 2"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.39.29.png" width="250" alt="App Screenshot 3"/>
+</div>
+
+<div align="center">
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.40.12.png" width="250" alt="App Screenshot 4"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.40.21.png" width="250" alt="App Screenshot 5"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.40.36.png" width="250" alt="App Screenshot 6"/>
+</div>
+
+<div align="center">
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.40.44.png" width="250" alt="App Screenshot 7"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.41.04.png" width="250" alt="App Screenshot 8"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.41.20.png" width="250" alt="App Screenshot 9"/>
+</div>
+
+<div align="center">
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.41.29.png" width="250" alt="App Screenshot 10"/>
+  <img src="screenshots/Simulator Screenshot - iPhone Xs Max - 2025-07-01 at 17.41.36.png" width="250" alt="App Screenshot 11"/>
+</div>
+
 ## Tech Stack
 
 - React Native 0.79.4
