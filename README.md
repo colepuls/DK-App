@@ -50,4 +50,4 @@ A cross-platform dream journal application built with React Native and Expo.
 
 ---
 
-Made by Cole Puls
+### Made by Cole Puls
