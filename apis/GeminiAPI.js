@@ -18,8 +18,8 @@
  */
 
 // API Configuration
-const GEMINI_API_KEY = 'AIzaSyCPb0P5DEiw1H4ZwYkw-jWnKRBty68m-Cs';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const GEMINI_API_KEY = 'SECRET';
+const GEMINI_BASE_URL = 'SECRET';
 const GEMINI_MODEL = 'gemini-1.5-pro'; // Best model for comprehensive analysis
 
 // Rate limiting configuration
