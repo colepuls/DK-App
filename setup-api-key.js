@@ -1,5 +1,5 @@
 /**
- * DK-App API Configuration Setup Script
+ * Dreamio API Configuration Setup Script
  * 
  * Interactive script to help users configure API keys and services
  * for the Dream Journal application. Supports both Google Cloud
@@ -29,7 +29,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-console.log('🎤 DK-App Speech Recognition Setup');
+console.log('🎤 Dreamio Speech Recognition Setup');
 console.log('==================================\n');
 
 console.log('This script will help you configure your Google Cloud API key for speech recognition.\n');

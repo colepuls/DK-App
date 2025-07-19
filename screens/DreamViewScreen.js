@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Eye, Tag, Calendar, Clock, Brain, ArrowLeft, Hash } from 'lucide-react-native';
+import { Eye, Tag, Calendar, Clock, Brain, ArrowLeft, Hash, RefreshCw } from 'lucide-react-native';
 import ReAnimated, { FadeInDown, FadeInUp, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, withDelay, FadeIn } from 'react-native-reanimated';
 import { analyzeDream } from '../apis/GeminiAPI';
 import Header from '../components/Header';
+import ErrorModal from '../components/ErrorModal';
 import { useFocusEffect } from '@react-navigation/native';
 // import DreamSceneryViewer from '../components/DreamSceneryViewer';
 
@@ -60,7 +61,15 @@ export default function DreamView({ route, navigation }) {
   const [dream, setDream] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [hasBeenEdited, setHasBeenEdited] = useState(false);
+  const [originalAnalysis, setOriginalAnalysis] = useState(null);
+  const [originalDreamText, setOriginalDreamText] = useState(null);
+  const [analysisError, setAnalysisError] = useState(false); // New state for tracking analysis errors
+  const [showErrorModal, setShowErrorModal] = useState(false); // New state for showing error modal
+  const [errorModalData, setErrorModalData] = useState({ title: '', message: '', onRetry: null }); // Error modal data
   const scrollViewRef = useRef(null);
+
+
 
   // Animation values for staggered elements
   const titleOpacity = useSharedValue(0);
@@ -126,6 +135,20 @@ export default function DreamView({ route, navigation }) {
         const found = dreams.find(d => d.id === id);
         if (found) {
           setDream(found);
+          
+          // Only set original text if it hasn't been set yet (first load)
+          if (originalDreamText === null) {
+            setOriginalDreamText(found.text);
+            setOriginalAnalysis(found.analysis);
+          }
+          
+          // Set analysis error if dream has error analysis
+          if (found.analysis) {
+            setAnalysisError(false);
+          }
+          
+          // Check if dream has been edited by comparing with original text
+          setHasBeenEdited(false); // Reset on load, will be set when user edits
         } else {
           setError('Dream not found');
         }
@@ -135,6 +158,74 @@ export default function DreamView({ route, navigation }) {
       }
     })();
   }, [id]);
+
+  // Check for edits whenever dream data changes
+  useEffect(() => {
+    if (dream && originalDreamText !== null) {
+      checkIfDreamWasEdited();
+    }
+  }, [dream, originalDreamText]);
+
+  // Listen for navigation focus to check if dream was edited
+  useFocusEffect(
+    useCallback(() => {
+      if (id) {
+        // Reload dream data and check for edits when screen comes into focus
+        loadDreamAndCheckEdits();
+      }
+    }, [id])
+  );
+
+  const loadDreamAndCheckEdits = async () => {
+    try {
+      const dreams = JSON.parse(await AsyncStorage.getItem('dreams')) || [];
+      const found = dreams.find(d => d.id === id);
+      if (found) {
+        setDream(found);
+        
+        // Store original text if not already set
+        if (originalDreamText === null) {
+          setOriginalDreamText(found.text);
+          setOriginalAnalysis(found.analysis);
+        }
+        
+        // Clear analysis error if dream has valid analysis
+        if (found.analysis) {
+          setAnalysisError(false);
+        }
+        
+        // Check if dream was edited using the wasEdited flag
+        if (found.wasEdited && found.analysis) {
+          setHasBeenEdited(true);
+        } else if (originalDreamText !== null && found.text !== originalDreamText && found.analysis) {
+          // Fallback: check if text changed
+          setHasBeenEdited(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading dream on focus:', err);
+    }
+  };
+
+  const checkIfDreamWasEdited = async () => {
+    try {
+      const dreams = JSON.parse(await AsyncStorage.getItem('dreams')) || [];
+      const found = dreams.find(d => d.id === id);
+      if (found) {
+        // Check if dream was edited using the wasEdited flag
+        if (found.wasEdited && found.analysis) {
+          setHasBeenEdited(true);
+        } else if (originalDreamText !== null && found.text !== originalDreamText && found.analysis) {
+          // Fallback: check if text changed
+          setHasBeenEdited(true);
+        } else {
+          setHasBeenEdited(false);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking if dream was edited:', err);
+    }
+  };
 
   // Auto-scroll to analysis when showAnalysis is true
   useEffect(() => {
@@ -204,11 +295,15 @@ export default function DreamView({ route, navigation }) {
   const generateAnalysis = async () => {
     if (!dream || !dream.text) return;
     
+    console.log('Starting analysis generation...');
     setLoading(true);
+    setAnalysisError(false); // Clear any previous errors
     try {
       // Get dream history for context
       const dreams = JSON.parse(await AsyncStorage.getItem('dreams')) || [];
+      console.log('Calling analyzeDream...');
       const analysisText = await analyzeDream(dream.text, dreams);
+      console.log('Analysis result:', analysisText);
       
       // Update the dream with analysis
       const updatedDream = { ...dream, analysis: analysisText };
@@ -226,11 +321,68 @@ export default function DreamView({ route, navigation }) {
       
     } catch (err) {
       console.error('Failed to get dream analysis:', err);
-      Alert.alert('Error', 'Failed to analyze dream.');
+      console.log('Setting error modal data...');
+      setAnalysisError(true);
+      setErrorModalData({
+        title: 'Analysis Failed',
+        message: err.message || 'Failed to analyze dream. Please try again.',
+        onRetry: generateAnalysis
+      });
+      console.log('Setting showErrorModal to true...');
+      setShowErrorModal(true);
+      console.log('Error modal should now be visible');
     } finally {
       setLoading(false);
     }
   };
+
+  const generateNewAnalysis = async () => {
+    if (!dream || !dream.text) return;
+    
+    setLoading(true);
+    setAnalysisError(false); // Clear any previous errors
+    try {
+      // Get dream history for context
+      const dreams = JSON.parse(await AsyncStorage.getItem('dreams')) || [];
+      const analysisText = await analyzeDream(dream.text, dreams);
+      
+      // Update the dream with new analysis and clear the wasEdited flag
+      const updatedDream = { 
+        ...dream, 
+        analysis: analysisText,
+        wasEdited: false // Clear the edited flag after generating new analysis
+      };
+      setDream(updatedDream);
+      setHasBeenEdited(false); // Hide the button after generating new analysis
+      
+      // Save to storage with sorting by timestamp (newest first)
+      const updatedDreams = dreams.map(d => d.id === dream.id ? updatedDream : d);
+      const sortedDreams = sortDreamsByTimestamp(updatedDreams);
+      await AsyncStorage.setItem('dreams', JSON.stringify(sortedDreams));
+      
+      // Scroll to analysis
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 300);
+      
+    } catch (err) {
+      console.error('Failed to get new dream analysis:', err);
+      setAnalysisError(true);
+      setErrorModalData({
+        title: 'Analysis Failed',
+        message: err.message || 'Failed to generate new analysis. Please try again.',
+        onRetry: generateNewAnalysis
+      });
+      setShowErrorModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Debug logging for error modal state
+  useEffect(() => {
+    console.log('Error modal state changed - showErrorModal:', showErrorModal, 'errorModalData:', errorModalData);
+  }, [showErrorModal, errorModalData]);
 
   if (error) {
     return (
@@ -332,7 +484,7 @@ export default function DreamView({ route, navigation }) {
             <View style={styles.analysisHeader}>
               <View style={styles.analysisHeaderLeft}>
                 <Brain size={20} color="#06D6A0" />
-                <Text style={styles.analysisTitle}>AI Analysis</Text>
+                <Text style={styles.analysisTitle}>Analysis</Text>
               </View>
             </View>
 
@@ -359,11 +511,44 @@ export default function DreamView({ route, navigation }) {
                 </TouchableOpacity>
               </View>
             ) : (
-              <Text style={styles.analysisText}>{dream.analysis}</Text>
+              <View style={styles.analysisContent}>
+                <Text style={styles.analysisText}>{dream.analysis}</Text>
+                
+
+                
+                {/* Show "Generate New Analysis" button after dream has been edited OR when there's an analysis error */}
+                {(hasBeenEdited || analysisError) && (
+                  <View style={styles.newAnalysisButtonContainer}>
+                    <TouchableOpacity 
+                      style={[styles.newAnalysisButton, loading && styles.newAnalysisButtonDisabled]}
+                      onPress={generateNewAnalysis}
+                      disabled={loading}
+                      activeOpacity={0.8}
+                    >
+                      {loading ? (
+                        <SimpleAnimatedThinking />
+                      ) : (
+                        <>
+                          <RefreshCw size={14} color="#FFFFFF" />
+                          <Text style={styles.newAnalysisButtonText}>Generate New Analysis</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             )}
           </ReAnimated.View>
         </ScrollView>
       </ReAnimated.View>
+      
+      <ErrorModal 
+        visible={showErrorModal}
+        title={errorModalData.title}
+        message={errorModalData.message}
+        onRetry={errorModalData.onRetry}
+        onClose={() => setShowErrorModal(false)}
+      />
     </View>
   );
 }
@@ -547,6 +732,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
+  newAnalysisButtonContainer: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A2A',
+    paddingTop: 16,
+  },
+  newAnalysisButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#8B5CF6',
+    shadowColor: '#8B5CF6',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    alignSelf: 'flex-start',
+  },
+  newAnalysisButtonDisabled: {
+    backgroundColor: '#374151',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  newAnalysisButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
   analysisText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -562,6 +782,8 @@ const styles = StyleSheet.create({
   analysisContent: {
     gap: 16,
   },
+
+
   thinkingContainer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,5 +1,5 @@
 {
-  "name": "dk-app",
+  "name": "dreamio",
   "version": "1.0.0",
   "description": "Dream Journal App - A React Native application for recording, analyzing, and tracking dreams with AI assistance. Features include mood analysis, dream interpretation, statistics, and intuitive navigation.",
   "main": "index.js",
@@ -16,7 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/colepuls/dk-app.git"
+    "url": "https://github.com/colepuls/dreamio.git"
   },
   "scripts": {
     "start": "expo start",
@@ -33,18 +33,16 @@
     "@react-navigation/native": "^7.1.13",
     "@react-navigation/native-stack": "^7.3.21",
     "@react-navigation/stack": "^7.3.6",
-    "@react-three/drei": "^10.3.0",
-    "@react-three/fiber": "^9.1.2",
     "@testing-library/react-native": "^13.2.0",
     "expo": "~53.0.12",
+    "expo-apple-authentication": "~7.2.4",
     "expo-av": "^15.1.6",
+    "expo-constants": "^17.1.7",
     "expo-file-system": "^18.1.10",
-    "expo-gl": "^15.1.6",
-    "expo-gl-cpp": "^11.4.0",
     "expo-linear-gradient": "^14.1.5",
     "expo-speech": "~13.1.7",
     "expo-status-bar": "~2.2.3",
-    "expo-three": "^8.0.0",
+    "firebase": "^12.0.0",
     "lucide": "^0.519.0",
     "lucide-react-native": "^0.519.0",
     "react": "19.0.0",
@@ -57,8 +55,7 @@
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
     "react-native-webview": "^13.15.0",
-    "router-dom": "^3.0.3",
-    "three": "^0.177.0"
+    "router-dom": "^3.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { BarChart, PieChart, LineChart } from 'react-native-chart-kit';
-import { BarChart3, PieChart as PieChartIcon, TrendingUp, Moon, Calendar, Heart, Clock } from 'lucide-react-native';
+import { BarChart3, PieChart as PieChartIcon, TrendingUp, Moon, Calendar, Heart, Clock, Frown, Meh, Zap, AlertTriangle } from 'lucide-react-native';
 import Animated, { 
   FadeIn,
   useSharedValue,
@@ -270,6 +270,42 @@ export default function Stats({ navigation }) {
     return colors[mood] || '#6B7280';
   };
 
+  /**
+   * Get appropriate icon for mood display
+   * Uses semantic icons that match the emotional content
+   * 
+   * @param {string} mood - The mood to get icon for
+   * @returns {Component} Lucide React Native icon component
+   */
+  const getMoodIcon = (mood) => {
+    const icons = {
+      Joyful: Heart,        // Heart for positive emotions
+      Sad: Frown,           // Frown for sad emotions
+      Neutral: Meh,         // Meh for neutral emotions
+      Strange: Zap,         // Zap for unusual/strange emotions
+      Scary: AlertTriangle, // Alert triangle for scary content
+    };
+    return icons[mood] || Meh; // Default to neutral icon
+  };
+
+  /**
+   * Get gradient colors for mood-based styling
+   * Provides consistent gradient colors that match the mood theme
+   * 
+   * @param {string} mood - The mood to get gradient colors for
+   * @returns {Array} Array of two colors for gradient
+   */
+  const getMoodGradient = (mood) => {
+    const gradients = {
+      Joyful: ['#10B981', '#059669'],     // Green gradient
+      Sad: ['#3B82F6', '#2563EB'],        // Blue gradient
+      Neutral: ['#6B7280', '#4B5563'],    // Gray gradient
+      Strange: ['#F59E0B', '#D97706'],    // Orange gradient
+      Scary: ['#EF4444', '#DC2626'],      // Red gradient
+    };
+    return gradients[mood] || ['#6B7280', '#4B5563']; // Default to gray gradient
+  };
+
   const chartConfig = {
     backgroundColor: '#1F2937',
     backgroundGradientFrom: '#1F2937',
@@ -357,12 +393,15 @@ export default function Stats({ navigation }) {
 
                 <Animated.View style={[styles.summaryCard, card2Style]}>
                   <LinearGradient
-                    colors={['#10B981', '#059669']}
+                    colors={getMoodGradient(stats.mostCommonMood)}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.cardGradient}
                   >
-                    <Heart size={24} color="#FFFFFF" />
+                    {(() => {
+                      const MoodIcon = getMoodIcon(stats.mostCommonMood);
+                      return <MoodIcon size={24} color="#FFFFFF" />;
+                    })()}
                     <Text style={styles.cardNumber}>{stats.mostCommonMood}</Text>
                     <Text style={styles.cardLabel}>Most Common Mood</Text>
                   </LinearGradient>

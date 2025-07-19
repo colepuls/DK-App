@@ -16,21 +16,26 @@
  * @since 2024
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { Moon, PenTool, MessageCircle, BarChart3 } from 'lucide-react-native';
+import { Moon, PenTool, User, BarChart3 } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp, FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
 
 import Home from './screens/Home';
 import DreamInput from './screens/Create';
-import AIChat from './screens/Help';
+import Account from './screens/Help';
 import DreamView from './screens/DreamViewScreen';
+import EditDream from './screens/EditDream';
 import Stats from './screens/Stats';
+import Login from './screens/Login';
+import Signup from './screens/Signup';
 import SplashScreen from './components/SplashScreen';
 
 const Tab = createBottomTabNavigator();
@@ -126,7 +131,7 @@ function CustomTabBar({ state, descriptors, navigation }) {
               case 'Create':
                 return <PenTool size={iconSize} color={iconColor} />;
               case 'Help':
-                return <MessageCircle size={iconSize} color={iconColor} />;
+                return <User size={iconSize} color={iconColor} />;
               case 'Stats':
                 return <BarChart3 size={iconSize} color={iconColor} />;
               default:
@@ -226,14 +231,14 @@ function TabNavigator() {
         }} 
       />
       
-      {/* Help Tab - AI assistant for dream interpretation */}
+      {/* Account Tab - User account management */}
       <Tab.Screen 
         name="Help" 
-        component={AIChat} 
+        component={Account} 
         options={{ 
-          title: 'AI Assistant',
+          title: 'Account',
           headerShown: false,
-          tabBarLabel: 'Assistant',
+          tabBarLabel: 'Account',
         }} 
       />
     </Tab.Navigator>
@@ -252,16 +257,41 @@ function TabNavigator() {
  */
 export default function App() {
   const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Listen for authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setAuthLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleSplashFinish = () => {
     setShowSplashScreen(false);
   };
 
+  // Show splash screen while app is loading
   if (showSplashScreen) {
     return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar style="light" backgroundColor="#0A0A0A" />
         <SplashScreen onFinish={handleSplashFinish} />
+      </GestureHandlerRootView>
+    );
+  }
+
+  // Show loading while checking authentication state
+  if (authLoading) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light" backgroundColor="#0A0A0A" />
+        <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Loading...</Text>
+        </View>
       </GestureHandlerRootView>
     );
   }
@@ -278,19 +308,45 @@ export default function App() {
             gestureDirection: 'horizontal',
           }}
         >
-          {/* Main tab navigator as the root screen */}
-          <Stack.Screen 
-            name="Main" 
-            component={TabNavigator} 
-            options={{ headerShown: false }} 
-          />
-          
-          {/* Dream view screen for detailed dream reading */}
-          <Stack.Screen 
-            name="View" 
-            component={DreamView} 
-            options={{ headerShown: false }} 
-          />
+          {user ? (
+            // Authenticated user - show main app
+            <>
+              {/* Main tab navigator as the root screen */}
+              <Stack.Screen 
+                name="Main" 
+                component={TabNavigator} 
+                options={{ headerShown: false }} 
+              />
+              
+              {/* Dream view screen for detailed dream reading */}
+              <Stack.Screen 
+                name="View" 
+                component={DreamView} 
+                options={{ headerShown: false }} 
+              />
+              
+              {/* Edit dream screen for modifying dream entries */}
+              <Stack.Screen 
+                name="EditDream" 
+                component={EditDream} 
+                options={{ headerShown: false }} 
+              />
+            </>
+          ) : (
+            // Not authenticated - show auth screens
+            <>
+              <Stack.Screen 
+                name="Login" 
+                component={Login} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="Signup" 
+                component={Signup} 
+                options={{ headerShown: false }} 
+              />
+            </>
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>

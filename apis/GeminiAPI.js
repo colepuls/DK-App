@@ -20,7 +20,13 @@
 // API Configuration
 const GEMINI_API_KEY = 'AIzaSyCPb0P5DEiw1H4ZwYkw-jWnKRBty68m-Cs';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-const GEMINI_MODEL = 'gemini-1.5-flash'; // Fast and cost-effective model
+const GEMINI_MODEL = 'gemini-1.5-pro'; // Best model for comprehensive analysis
+
+// Rate limiting configuration
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 500; // Reduced to 0.5 seconds between requests for upgraded plan
+let requestCount = 0;
+const MAX_REQUESTS_PER_MINUTE = 120; // Increased for upgraded plan
 
 /**
  * Main query function for interacting with Gemini API
@@ -34,6 +40,16 @@ const GEMINI_MODEL = 'gemini-1.5-flash'; // Fast and cost-effective model
  * @returns {Promise<string>} AI response text or error message
  */
 export const queryGemini = async (prompt, context = null, retries = 2) => {
+  // Rate limiting: ensure minimum interval between requests
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+    console.log(`Rate limiting: waiting ${waitTime}ms before next request...`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  lastRequestTime = Date.now();
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       // Set up request timeout using AbortController
@@ -56,11 +72,29 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
             }
           ],
           generationConfig: {
-            maxOutputTokens: 500,    // Limit response length for cost control
-            temperature: 0.7,        // Balanced creativity vs consistency
-            topP: 0.8,              // Nucleus sampling for quality
+            maxOutputTokens: 800,    // Increased for more detailed analysis
+            temperature: 0.8,        // Slightly more creative for dream analysis
+            topP: 0.9,              // Higher quality responses
             topK: 40                // Top-k sampling for diversity
-          }
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_NONE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_NONE"
+            }
+          ]
         }),
         signal: controller.signal
       });
@@ -68,6 +102,19 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        // Handle rate limiting specifically
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt + 1) * 1000;
+          
+          if (attempt < retries) {
+            console.log(`Rate limited. Waiting ${waitTime}ms before retry (attempt ${attempt + 1}/${retries + 1})...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
 
@@ -90,7 +137,7 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
           continue;
         }
-        return 'Request timed out. Please try again.';
+        throw new Error('Request timed out. Please try again.');
       }
       
       // Retry on other errors
@@ -100,11 +147,20 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
         continue;
       }
       
-      return 'Error connecting to AI service. Please check your internet connection.';
+      // Provide more specific error messages
+      if (error.message.includes('429')) {
+        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+      } else if (error.message.includes('403')) {
+        throw new Error('API access denied. Please check your API key.');
+      } else if (error.message.includes('500') || error.message.includes('502') || error.message.includes('503')) {
+        throw new Error('AI service temporarily unavailable. Please try again in a moment.');
+      } else {
+        throw new Error('Error connecting to AI service. Please check your internet connection.');
+      }
     }
   }
   
-  return 'Error connecting to AI service.';
+  throw new Error('Error connecting to AI service.');
 };
 
 /**
@@ -119,22 +175,24 @@ export const queryGemini = async (prompt, context = null, retries = 2) => {
  * @returns {Promise<string>} Categorized mood tag (Joyful, Sad, Neutral, Strange, Scary)
  */
 export const generateMoodTag = async (dreamText, retries = 2) => {
-  const moodPrompt = `Analyze the following dream and determine the most accurate mood tag. 
+  const moodPrompt = `You are an expert at analyzing emotional content in dreams. Analyze the following dream and determine the most accurate mood tag.
 
 Consider these factors:
-- Emotional tone (fear, joy, confusion, peace, excitement, sadness, anger, wonder)
-- Intensity level (mild, moderate, intense)
-- Overall feeling (positive, negative, neutral, mixed)
+- **Primary emotional tone**: What is the dominant feeling?
+- **Intensity level**: How strong are the emotions?
+- **Overall atmosphere**: What's the general mood/feeling?
+- **Complexity**: Are there mixed or conflicting emotions?
 
-Available mood tags: 
-- peaceful, joyful, exciting, curious, hopeful, grateful, loving, confident
-- scary, anxious, sad, angry, confused, frustrated, lonely, guilty
-- mysterious, surreal, bizarre, overwhelming, intense, calm, neutral
-- mixed (for dreams with conflicting emotions)
+Available mood tags (choose the most fitting):
+- **Joyful**: peaceful, happy, exciting, hopeful, grateful, loving, confident, content
+- **Sad**: sad, lonely, depressed, guilty, disappointed, heartbroken
+- **Scary**: scary, anxious, fearful, terrified, panicked, stressed
+- **Strange**: mysterious, surreal, bizarre, confusing, curious, puzzling
+- **Neutral**: calm, neutral, indifferent, balanced, mixed (conflicting emotions)
 
 Dream: "${dreamText}"
 
-Respond with ONLY the single most appropriate mood tag, nothing else.`;
+Respond with ONLY the single most appropriate mood tag from the categories above, nothing else.`;
 
   try {
     const response = await queryGemini(moodPrompt);
@@ -197,26 +255,27 @@ Respond with ONLY the single most appropriate mood tag, nothing else.`;
  * @returns {Promise<string>} AI-generated dream analysis and insights
  */
 export const analyzeDream = async (dreamText, dreamHistory = []) => {
-  const analysisPrompt = `You are a dream analysis expert helping users understand their dreams. 
+  const analysisPrompt = `You are an expert dream analyst with deep knowledge of psychology, symbolism, and dream interpretation. 
 
-${dreamHistory.length > 0 ? `Previous dreams context: ${dreamHistory.slice(-3).map(d => d.title).join(', ')}` : ''}
+${dreamHistory.length > 0 ? `Context from recent dreams: ${dreamHistory.slice(-3).map(d => d.title).join(', ')}` : ''}
 
 Analyze this dream: "${dreamText}"
 
-Provide insights on:
-1. Possible meanings or interpretations
-2. Recurring themes or patterns
-3. Emotional significance
-4. Any actionable insights for the dreamer
+Provide a comprehensive analysis including:
+1. **Symbolic Meanings**: What do the key elements in this dream represent?
+2. **Emotional Patterns**: What emotions are present and what might they indicate?
+3. **Personal Context**: How might this dream relate to the dreamer's current life situation?
+4. **Recurring Themes**: Are there patterns connecting to previous dreams?
+5. **Actionable Insights**: What practical steps or reflections might be helpful?
 
-Keep your response helpful, supportive, and not too long (2-3 sentences).`;
+Keep your response insightful, supportive, and around 3-4 sentences. Focus on being helpful rather than definitive.`;
 
   try {
     const response = await queryGemini(analysisPrompt);
     return response;
   } catch (error) {
     console.error('Error analyzing dream:', error);
-    return 'Unable to analyze dream at this time.';
+    throw new Error('Unable to analyze dream at this time.');
   }
 };
 
@@ -288,30 +347,28 @@ const getMoodDistribution = (dreams) => {
  * @returns {Promise<string>} AI-improved version of the dream text
  */
 export const rewriteDream = async (dreamText, retries = 2) => {
-  const rewritePrompt = `You are a professional editor helping to improve the writing quality of a dream journal entry. 
+  const rewritePrompt = `You are an expert writer specializing in dream journal entries. 
 
-Your task is to rewrite the following dream text to:
-1. Fix any grammar errors
-2. Improve sentence structure and flow
-3. Make the writing more clear and engaging
-4. Preserve ALL original details and meaning exactly
-5. Keep the same emotional tone and personal voice
-6. Maintain the dream's authenticity and personal experience
+Rewrite the following dream description to be more clear, engaging, and well-written while preserving ALL the original details, emotions, and meaning:
 
-IMPORTANT: Do not add any new details, change the meaning, or alter the dream's content. Only improve the writing quality.
+"${dreamText}"
 
-Original dream text: "${dreamText}"
+Your improvements should:
+- **Enhance clarity**: Make the narrative flow better
+- **Preserve authenticity**: Keep the dreamer's unique voice and perspective
+- **Maintain details**: Don't add or remove any specific elements
+- **Improve readability**: Better grammar, structure, and flow
+- **Keep emotions intact**: Preserve the emotional tone and intensity
 
-Please provide the improved version while keeping all the original details intact.`;
+Return only the improved version, nothing else.`;
 
   try {
     const response = await queryGemini(rewritePrompt, null, retries);
     return response.trim();
   } catch (error) {
     console.error('Error rewriting dream:', error);
-    return dreamText; // Return original text if rewrite fails
+    throw new Error('Unable to improve writing at this time.');
   }
 };
 
-// Backward compatibility - export the old function names
-export const queryOllama = queryGemini; 
+ 

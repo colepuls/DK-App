@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "DK-App",
-    "slug": "DK-App",
+    "name": "Dreamio",
+    "slug": "Dreamio",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,10 +15,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dkapp.dreamjournal",
-      "buildNumber": "3",
+      "buildNumber": "6",
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app needs access to the microphone to enable voice input for dream journaling."
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -34,10 +35,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      "expo-apple-authentication"
+    ],
     "extra": {
       "eas": {
-        "projectId": "b9057e2a-aae6-4cb8-a105-01c0a9cc2c3c"
+        "projectId": "9b278b20-2650-4003-9000-a3a627e39fa1"
       }
-    }
+    },
+    "owner": "yomonos"
   }
 }

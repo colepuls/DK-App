@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>DK-App</string>
+    <string>Dreamio</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -33,12 +33,20 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>exp+dk-app</string>
+          <string>exp+dreamio</string>
+        </array>
+      </dict>
+      <dict>
+        <key>CFBundleURLName</key>
+        <string>apple-sign-in</string>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>com.dkapp.dreamjournal.apple-sign-in</string>
         </array>
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>6</string>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>

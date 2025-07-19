@@ -1,4 +1,4 @@
-# 🌙 DK-App Server - Dream Journal API
+# 🌙 Dreamio Server - Dream Journal API
 
 Express.js backend server providing AI-powered dream analysis capabilities for the Dream Journal mobile application. Integrates with Ollama for local AI model processing and provides robust error handling with fallbacks.
 
@@ -361,10 +361,10 @@ Use the included Postman collection or test with curl commands above.
    ```bash
    # Using PM2
    npm install -g pm2
-   pm2 start server.js --name "dk-app-server"
+   pm2 start server.js --name "dreamio-server"
    
    # Using systemd
-   sudo systemctl start dk-app-server
+   sudo systemctl start dreamio-server
    ```
 
 ### Docker Deployment
@@ -387,8 +387,8 @@ CMD ["npm", "start"]
 Build and run:
 
 ```bash
-docker build -t dk-app-server .
-docker run -p 3000:3000 dk-app-server
+docker build -t dreamio-server .
+docker run -p 3000:3000 dreamio-server
 ```
 
 ### Environment Considerations
@@ -442,7 +442,7 @@ ollama list
 Enable debug logging:
 
 ```bash
-DEBUG=dk-app:* npm start
+DEBUG=dreamio:* npm start
 ```
 
 View logs:
@@ -463,4 +463,4 @@ This project is licensed under the MIT License - see the [LICENSE](../LICENSE) f
 
 **Built with ❤️ using Node.js and Express**
 
-*Powering AI-driven dream analysis for the DK-App mobile application.* 
+*Powering AI-driven dream analysis for the Dreamio mobile application.* 

@@ -17,10 +17,12 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, TextInput, FlatList, StyleSheet, Text, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, TextInput, FlatList, StyleSheet, Text, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Search, Moon, Trash2, Edit3, Plus } from 'lucide-react-native';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import Animated, { 
   FadeIn,
   useSharedValue,
@@ -34,7 +36,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import DreamCard from '../components/Card';
-import EditDreamModal from '../components/EditDreamModal';
 import Header from '../components/Header';
 
 /**
@@ -51,9 +52,6 @@ export default function Home({ navigation }) {
   // Core state management for dreams and UI
   const [dreams, setDreams] = useState([]);
   const [query, setQuery] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [currentId, setCurrentId] = useState(null);
-  const [newTitle, setNewTitle] = useState('');
   const [selectedMood, setSelectedMood] = useState('all');
 
   // Swipe navigation configuration
@@ -241,37 +239,7 @@ export default function Home({ navigation }) {
     await AsyncStorage.setItem('dreams', JSON.stringify(sortedUpdated));
   };
 
-  /**
-   * Open edit modal for a specific dream
-   * Pre-populates the modal with current dream title
-   * 
-   * @param {string} id - Unique identifier of the dream to edit
-   */
-  const handleEdit = (id) => {
-    const dream = dreams.find(d => d.id === id);
-    if (!dream) return;
-    setCurrentId(id);
-    setNewTitle(dream.title);
-    setShowModal(true);
-  };
 
-  /**
-   * Save edited dream title and update storage
-   * Validates input and maintains sorted order
-   */
-  const saveEdit = async () => {
-    if (!newTitle.trim()) return;
-    const updated = dreams.map(d =>
-      d.id === currentId ? { ...d, title: newTitle.trim() } : d
-    );
-    // Sort dreams by timestamp in descending order (newest first)
-    const sortedUpdated = sortDreamsByTimestamp(updated);
-    setDreams(sortedUpdated);
-    await AsyncStorage.setItem('dreams', JSON.stringify(sortedUpdated));
-    setShowModal(false);
-    setNewTitle('');
-    setCurrentId(null);
-  };
 
   /**
    * Get color for mood indicators based on mood type
@@ -290,6 +258,8 @@ export default function Home({ navigation }) {
     };
     return colors[mood] || '#6B7280'; // Default to gray if mood not found
   };
+
+
 
   return (
     <PanGestureHandler
@@ -386,7 +356,7 @@ export default function Home({ navigation }) {
               data={filtered}
               keyExtractor={item => item.id.toString()}
               renderItem={({ item, index }) => (
-                <DreamCard dream={item} onEdit={handleEdit} onDelete={handleDelete} navigation={navigation} />
+                <DreamCard dream={item} onDelete={handleDelete} navigation={navigation} />
               )}
               contentContainerStyle={styles.contentContainerStyle}
               showsVerticalScrollIndicator={false}
@@ -394,14 +364,7 @@ export default function Home({ navigation }) {
           </Animated.View>
         </Animated.View>
 
-        {/* Edit dream modal for title modifications */}
-        <EditDreamModal
-          visible={showModal}
-          titleValue={newTitle}
-          onTitleChange={setNewTitle}
-          onSave={saveEdit}
-          onCancel={() => setShowModal(false)}
-        />
+
       </Animated.View>
     </PanGestureHandler>
   );

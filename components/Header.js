@@ -8,6 +8,8 @@ export default function Header({
   onActionPress,
   backIcon: BackIcon,
   onBackPress,
+  secondaryActionIcon: SecondaryActionIcon,
+  onSecondaryActionPress,
   style 
 }) {
   return (
@@ -27,15 +29,26 @@ export default function Header({
             <Icon size={20} color="#8B5CF6" />
           </View>
         </View>
-        {ActionIcon && onActionPress && (
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={onActionPress}
-            activeOpacity={0.7}
-          >
-            <ActionIcon size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerRight}>
+          {SecondaryActionIcon && onSecondaryActionPress && (
+            <TouchableOpacity 
+              style={styles.secondaryActionButton}
+              onPress={onSecondaryActionPress}
+              activeOpacity={0.7}
+            >
+              <SecondaryActionIcon size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          {ActionIcon && onActionPress && (
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={onActionPress}
+              activeOpacity={0.7}
+            >
+              <ActionIcon size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -59,6 +72,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   iconContainer: {
     width: 36,
     height: 36,
@@ -72,6 +90,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secondaryActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -19,7 +19,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, TextInput, StyleSheet, Alert, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PenTool, Save } from 'lucide-react-native';
+import { PenTool, Save, Undo } from 'lucide-react-native';
 import Animated, { 
   FadeIn,
   useSharedValue,
@@ -34,6 +34,7 @@ import Animated, {
 import { PanGestureHandler } from 'react-native-gesture-handler';
 import SaveDreamModal from '../components/SaveDreamModal';
 import SuccessModal from '../components/SuccessModal';
+import ErrorModal from '../components/ErrorModal';
 import SpeechToText from '../components/SpeechToText';
 import { generateMoodTag, rewriteDream } from '../apis/GeminiAPI';
 import Header from '../components/Header';
@@ -58,6 +59,10 @@ export default function Create({ navigation }) {
   const [generatedMood, setGeneratedMood] = useState('');
   const [isRewriting, setIsRewriting] = useState(false);
   const [rewrittenText, setRewrittenText] = useState('');
+  const [originalText, setOriginalText] = useState('');
+  const [hasBeenImproved, setHasBeenImproved] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalData, setErrorModalData] = useState({ title: '', message: '', onRetry: null });
 
   // Swipe navigation configuration
   const screenWidth = Dimensions.get('window').width;
@@ -155,12 +160,28 @@ export default function Create({ navigation }) {
   /**
    * Handle button visibility when text content changes
    * Shows/hides save button based on whether there's content to save
+   * Also resets improvement state when text is manually changed
    */
   useEffect(() => {
     if (body.trim()) {
       buttonOpacity.value = withTiming(1, { duration: 300 });
     } else {
       buttonOpacity.value = withTiming(0, { duration: 300 });
+    }
+    
+    // Reset improvement state if user manually changes text after improvement
+    // Only reset if the current text is different from the last improved version
+    // and also different from the original text (to avoid resetting during revert)
+    if (hasBeenImproved && body !== rewrittenText && body !== originalText) {
+      setHasBeenImproved(false);
+      setOriginalText('');
+      setRewrittenText('');
+    }
+    // If user reverts and then makes changes, we should reset the improvement state
+    else if (hasBeenImproved && body === originalText && rewrittenText === '') {
+      // User has reverted and is now making changes to the original text
+      // Keep the improvement state but update rewrittenText to track changes
+      setRewrittenText(body);
     }
   }, [body]);
 
@@ -211,16 +232,39 @@ export default function Create({ navigation }) {
     setIsRewriting(true);
     try {
       console.log('Rewriting dream with AI...');
+      // Store the original text only on the first improvement
+      if (!hasBeenImproved) {
+        setOriginalText(body);
+      }
       const improvedText = await rewriteDream(body);
+      
       setRewrittenText(improvedText);
       setBody(improvedText);
+      setHasBeenImproved(true);
       console.log('Dream rewritten successfully');
     } catch (err) {
       console.error('Failed to rewrite dream:', err);
-      Alert.alert('Error', 'Failed to rewrite dream. Please try again.');
+      setErrorModalData({
+        title: 'Improvement Failed',
+        message: err.message || 'Failed to improve writing. Please try again.',
+        onRetry: handleRewrite
+      });
+      setShowErrorModal(true);
     } finally {
       setIsRewriting(false);
     }
+  };
+
+  /**
+   * Handle reverting AI improvements back to original text
+   * Restores the original user input and hides the revert button
+   */
+  const handleRevert = () => {
+    setBody(originalText);
+    // Reset improvement state to hide the revert button
+    setHasBeenImproved(false);
+    setOriginalText('');
+    setRewrittenText('');
   };
 
   /**
@@ -249,6 +293,9 @@ export default function Create({ navigation }) {
       setTitle('');
       setShowModal(false);
       setGeneratedMood('');
+      setHasBeenImproved(false);
+      setOriginalText('');
+      setRewrittenText('');
       
       // Show success modal instead of alert
       setSavedMood(generatedMood);
@@ -350,15 +397,27 @@ export default function Create({ navigation }) {
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
-                    style={[styles.rewriteButton, isRewriting && styles.rewriteButtonDisabled]}
+                    style={[styles.rewriteButton, (isRewriting || hasBeenImproved) && styles.rewriteButtonDisabled]}
                     onPress={handleRewrite}
                     activeOpacity={0.8}
-                    disabled={isRewriting}
+                    disabled={isRewriting || hasBeenImproved}
                   >
                     <Text style={styles.rewriteButtonText}>
-                      {isRewriting ? 'Improving...' : 'Improve Writing'}
+                      {isRewriting ? 'Improving...' : hasBeenImproved ? 'Already Improved' : 'Improve Writing'}
                     </Text>
                   </TouchableOpacity>
+                  
+                  {/* Revert Changes Button - only show when text has been improved */}
+                  {hasBeenImproved && (
+                    <TouchableOpacity 
+                      style={styles.revertButton}
+                      onPress={handleRevert}
+                      activeOpacity={0.8}
+                    >
+                      <Undo size={20} color="#FFFFFF" />
+                      <Text style={styles.revertButtonText}>Revert Changes</Text>
+                    </TouchableOpacity>
+                  )}
                 </Animated.View>
               )}
             </ScrollView>
@@ -381,6 +440,14 @@ export default function Create({ navigation }) {
           visible={showSuccessModal}
           mood={savedMood}
           onClose={() => setShowSuccessModal(false)}
+        />
+
+        <ErrorModal 
+          visible={showErrorModal}
+          title={errorModalData.title}
+          message={errorModalData.message}
+          onRetry={errorModalData.onRetry}
+          onClose={() => setShowErrorModal(false)}
         />
       </Animated.View>
     </PanGestureHandler>
@@ -490,5 +557,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  revertButton: {
+    backgroundColor: '#EF4444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    shadowColor: '#EF4444',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  revertButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

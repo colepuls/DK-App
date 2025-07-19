@@ -32,6 +32,7 @@ import Animated, {
   withTiming,
   interpolate
 } from 'react-native-reanimated';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 /**
  * Dream Card Component
@@ -40,14 +41,15 @@ import Animated, {
  * Handles mood display, timestamp formatting, and user interactions.
  * 
  * @param {Object} dream - Dream object containing id, title, text, mood, timestamp
- * @param {Function} onEdit - Callback function for editing the dream
  * @param {Function} onDelete - Callback function for deleting the dream
  * @param {Object} navigation - React Navigation object for screen transitions
  * @returns {JSX.Element} Dream card with interactive elements
  */
-export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
+export default function DreamCard({ dream, onDelete, navigation }) {
   // State for controlling the action menu visibility
   const [showMenu, setShowMenu] = useState(false);
+  // State for controlling the delete confirmation modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   // Animated values for button interactions
   const menuButtonScale = useSharedValue(1);
@@ -208,7 +210,7 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
   };
 
   /**
-   * Handle edit action - close menu and call edit callback
+   * Handle edit action - close menu and navigate to edit screen
    */
   const handleEdit = () => {
     editButtonScale.value = withSpring(0.95, { duration: 100 }, () => {
@@ -216,12 +218,12 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
     });
     setTimeout(() => {
       closeMenu();
-      onEdit(dream.id);
+      navigation.navigate('EditDream', { id: dream.id });
     }, 150);
   };
 
   /**
-   * Handle delete action - close menu and call delete callback
+   * Handle delete action - close menu and show confirmation modal
    */
   const handleDelete = () => {
     deleteButtonScale.value = withSpring(0.95, { duration: 100 }, () => {
@@ -229,8 +231,23 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
     });
     setTimeout(() => {
       closeMenu();
-      onDelete(dream.id);
+      setShowDeleteModal(true);
     }, 150);
+  };
+
+  /**
+   * Confirm deletion and call delete callback
+   */
+  const confirmDelete = () => {
+    setShowDeleteModal(false);
+    onDelete(dream.id);
+  };
+
+  /**
+   * Cancel deletion and close modal
+   */
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   // Animated styles
@@ -354,6 +371,14 @@ export default function DreamCard({ dream, onEdit, onDelete, navigation }) {
           <View style={styles.menuOverlay} />
         </TouchableWithoutFeedback>
       )}
+
+      {/* Delete confirmation modal */}
+      <DeleteConfirmationModal
+        visible={showDeleteModal}
+        dreamTitle={dream.title}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </View>
   );
 }
